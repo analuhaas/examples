@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-present LAAS-CNRS
+ * Copyright (c) 2025-present LAAS-CNRS
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU Lesser General Public License as published by
@@ -18,7 +18,7 @@
  */
 
 /**
- * @brief  This example shows how to a MMC arm works by blinking the onboard LED of the Spin board of the arm modules.
+ * @brief  This example deploys the open-loop control of a MMC arm integrating a Capacitor Voltage Balancing algorithm. 
  *         This research was funded in whole by the French National Research Agency (ANR) under the project CARROTS "ANR-24-CE05-0920-01".
  *
  * @author Ayoub Farah Hassan <ayoub.farah-hassan@laas.fr>
