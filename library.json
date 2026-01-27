@@ -373,7 +373,17 @@
             "README.md"
         ]
     },
-    
+    {
+        "name": "single_module_mmc",
+        "title": "Single MMC module",
+        "description": "MMC module using a Twist board.",
+        "group": "Examples TWIST",
+        "base": "TWIST/MMC/single_module_mmc",
+        "files": [
+            "main.cpp",
+            "README.md"
+        ]
+    },
     {
         "name": "cvb_control_mmc",
         "title": "CVB control",
