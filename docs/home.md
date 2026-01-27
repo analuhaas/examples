@@ -200,15 +200,7 @@ Get on track using featured examples :
 
     Reproduce a MMC module using one Twist board ! 
 
-    [:octicons-arrow-right-24: MMC module LF](https://docs.owntech.org/latest/examples/TWIST/MMC/mmc_module_lf_test/)
-    [:octicons-arrow-right-24: MMC module HF](https://docs.owntech.org/latest/examples/TWIST/MMC/mmc_module_hf_test/)
-
-    ---
-
-    Build your own MMC arm with up to 10 module ! 
-
-    [:octicons-arrow-right-24: MMC arm with CVB ](https://docs.owntech.org/latest/examples/TWIST/MMC/arm_with_cvb/)    
-    [:octicons-arrow-right-24: MMC arm without CVB ](https://docs.owntech.org/latest/examples/TWIST/MMC/arm_without_cvb/)   
+    [:octicons-arrow-right-24: MMC module ](https://docs.owntech.org/latest/examples/TWIST/MMC/single_module_mmc/)    
 
 
 </div>
