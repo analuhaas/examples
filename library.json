@@ -366,29 +366,19 @@
         "name": "blinky_mmc_arm",
         "title": "Blinky MMC arm",
         "description": "Unpowered MMC arm by blinking the onboard LED of the Spin board of the arm modules.",
-        "group": "Examples TWIST",
+        "group": "Examples MMC",
         "base": "TWIST/MMC/blinky_mmc_arm",
         "files": [
             "main.cpp",
             "README.md"
         ]
     },
-    {
-        "name": "single_module_mmc",
-        "title": "Single MMC module",
-        "description": "MMC module using a Twist board.",
-        "group": "Examples TWIST",
-        "base": "TWIST/MMC/single_module_mmc",
-        "files": [
-            "main.cpp",
-            "README.md"
-        ]
-    },
+    
     {
         "name": "cvb_control_mmc",
         "title": "CVB control",
         "description": "Open-loop control of a MMC arm integrating a Capacitor Voltage Balancing algorithm.",
-        "group": "Examples TWIST",
+        "group": "Examples MMC",
         "base": "TWIST/MMC/cvb_control_mmc",
         "files": [
             "main.cpp",
@@ -405,6 +395,50 @@
             "main.cpp",
             "README.md"
         ]
-    }
+    },
+    {
+        "name": "arm_with_cvb",
+        "title": "MMC arm with CVB",
+        "description": "Build a MMC arm integrating a Capacitor Voltage Balancing algorithm in Open-loop control using NLM modulation.",
+        "group": "Examples MMC",
+        "base": "TWIST/MMC/arm_with_cvb",
+        "files": [
+            "main.cpp",
+            "README.md"
+        ]
+    },
+    {
+        "name": "arm_without_cvb",
+        "title": "MMC arm without CVB",
+        "description": "Build a MMC arm in Open-loop control using NLM modulation.",
+        "group": "Examples MMC",
+        "base": "TWIST/MMC/arm_without_cvb",
+        "files": [
+            "main.cpp",
+            "README.md"
+        ]
+    },
+    {
+        "name": "mmc_module_lf_test",
+        "title": "Base MMC module",
+        "description": "MMC module using a Twist board tested in low-frequency behavior for easy understanding.",
+        "group": "Examples MMC",
+        "base": "TWIST/MMC/mmc_module_lf_test",
+        "files": [
+            "main.cpp",
+            "README.md"
+        ]
+    },
+    {
+        "name": "mmc_module_lf_test",
+        "title": "Base MMC module",
+        "description": "MMC module using a Twist board tested in high-frequency.",
+        "group": "Examples MMC",
+        "base": "TWIST/MMC/mmc_module_hf_test",
+        "files": [
+            "main.cpp",
+            "README.md"
+        ]
+    },
     ]
 }
