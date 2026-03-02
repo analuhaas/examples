@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025-present LAAS-CNRS
+ * Copyright (c) 2026-present LAAS-CNRS
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU Lesser General Public License as published by
@@ -479,7 +479,7 @@ uint32_t counter_receive = 0;
 uint8_t received_serial_char; // Variable to store the received character from the serial interface
 int8_t CommTask_num;
 
-static bool lead = false;
+static bool master = false;
 
 /* --------------- LIST OF POSSIBLE BOARD MODES ------------------*/
 enum serial_interface_menu_mode
@@ -724,7 +724,7 @@ void setup_routine()
     /* Informs the module ID in the terminal */
     const uint32_t board_uid = read_board_uid();
     printk("Board UID: 0x%08" PRIX32 "\n", board_uid);
-    lead = (module_ID == MMC_LEAD);
+    master = (module_ID == MMC_LEAD);
 
     config_led_LL(); // Configure the LED pin in Low Level
 
@@ -756,7 +756,7 @@ void setup_routine()
                                   reception_function,
                                   SPEED_20M); // custom configuration for RS485
                                               /* Configure scope channels, what measurements do you want to acquire? */
-    if (lead == true)
+    if (master == true)
     {
         /* Defines lead's clock as reference for communication synchorinization */
         communication.sync.initMaster();
