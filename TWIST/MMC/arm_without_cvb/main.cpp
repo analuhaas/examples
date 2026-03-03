@@ -217,6 +217,8 @@ void setup_routine();
 void loop_background_task();
 /* Code to be executed in real time in the critical task - executes all LEAD and MODULES control logics */
 void loop_critical_task();
+/* Code to be executed in the communication task - serves to send command to board via PC using USB-C cable */
+void loop_communication_task();
 
 /* --------------USER VARIABLES DECLARATIONS------------------- */
 
@@ -488,8 +490,6 @@ enum serial_interface_menu_mode
 };
 
 serial_interface_menu_mode mode = IDLEMODE;
-
-void loop_communication_task(); // Code to be executed in the communication task
 
 /* --------------- Firmware and control variables ------------------*/
 
@@ -875,8 +875,8 @@ void loop_critical_task()
             modulation_signal_lower = (a - m * ot_sin(angle)) / (2.0);
 
             /* Number of modules N_on to be connected on the arm according to modulation signal by Nearest Level Modulation (NLM)  */
-            number_of_connected_submodules_upper_arm = round(total_number_of_modules_arm*modulation_signal_upper); // recuperate for scope
-            number_of_connected_submodules_lower_arm = round(total_number_of_modules_arm*modulation_signal_lower); // recuperate for scope
+            number_of_connected_submodules_upper_arm = round(total_number_of_modules_arm*modulation_signal_upper);
+            number_of_connected_submodules_lower_arm = round(total_number_of_modules_arm*modulation_signal_lower);
 
             /* Modules choice with preference order M1 > M2 > M3 > M4 > M5 */
             for(uint8_t counter = 0; counter < total_number_of_modules_arm; counter++)

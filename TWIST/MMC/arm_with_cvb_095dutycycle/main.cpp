@@ -218,6 +218,8 @@ void setup_routine();
 void loop_background_task();
 /* Code to be executed in real time in the critical task - executes all LEAD and MODULES control logics */
 void loop_critical_task();
+/* Code to be executed in the communication task - serves to send command to board via PC using USB-C cable */
+void loop_communication_task();
 
 /* --------------USER VARIABLES DECLARATIONS------------------- */
 
@@ -490,8 +492,6 @@ enum serial_interface_menu_mode
 };
 
 serial_interface_menu_mode mode = IDLEMODE;
-
-void loop_communication_task(); // Code to be executed in the communication task
 
 /* --------------- Firmware and control variables ------------------*/
 
