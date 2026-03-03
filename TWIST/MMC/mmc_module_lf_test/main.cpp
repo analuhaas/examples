@@ -83,7 +83,6 @@ static float meas_data;
 /* Scope variables */
 
 static const uint16_t NB_DATAS = 2048; //Number of data acquired
-static const float32_t minimal_step = 1.0F / (float32_t) NB_DATAS;
 static ScopeMimicry scope(NB_DATAS, 5); // Scope configuration with 5 channels
 static bool is_downloading; // Records data if true
 static bool enable_acq = false; // Sets trigger moment if true
@@ -151,7 +150,7 @@ void setup_routine()
 
     shield.sensors.enableDefaultTwistSensors();
 
-    /* Disconnect electrolytical capacitors from low-side */
+    /* Disconnect or connect electrolytical capacitors from low-side */
     shield.power.connectCapacitor(LEG1);
     shield.power.disconnectCapacitor(LEG2);
 
@@ -225,8 +224,8 @@ void loop_communication_task()
 /**
  * This is the code loop of the background task
  * It runs perpetually. Here a `suspendBackgroundMs` is used to pause during
- * 2000ms between each LED toggles.
- * Hence we expect the LED to blink each 2 seconds.
+ * 1000ms between each LED toggles.
+ * Hence we expect the LED to blink each 1 seconds.
  * 
  * It also prints some measurements in the terminal for user verification.
  */

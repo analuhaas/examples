@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025-present LAAS-CNRS
+ * Copyright (c) 2026-present LAAS-CNRS
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU Lesser General Public License as published by
@@ -18,7 +18,7 @@
  */
 
 /**
- * @brief  This example deploys the open-loop control of a MMC arm integrating a Capacitor Voltage Balancing algorithm. 
+ * @brief  This example deploys the test of a MMC Half-Bridge (HB) module using a low-frequency sequence, now modified to be independent of a programmable source.
  *         This research was funded in whole by the French National Research Agency (ANR) under the project CARROTS "ANR-24-CE05-0920-01".
  *
  * @author Ayoub Farah Hassan <ayoub.farah-hassan@laas.fr>
@@ -39,7 +39,6 @@
 #include "TaskAPI.h"
 
 /*--------------OWNTECH Libraries----------------------------- */
-#include "pid.h"
 #include "arm_math_types.h"
 #include <ScopeMimicry.h>
 
@@ -48,20 +47,22 @@
 void setup_routine();
 
 /*--------------LOOP FUNCTIONS DECLARATION-------------------- */
-/* Code to be executed in the slow communication task */
-void loop_communication_task();
-/* Code to be executed in the background task */
+/* Code to be executed in the background task - only sets up boards LEDs and prints measurements in terminal */
 void loop_application_task();
-/* Code to be executed in real time in the critical task */
+/* Code to be executed in real time in the critical task - executes MODULE control logics */
 void loop_critical_task();
+/* Code to be executed in the communication task - serves to send command to board via PC using USB-C cable */
+void loop_communication_task();
 
 /*--------------USER VARIABLES DECLARATIONS------------------- */
 
 /* [us] period of the control task */
-static uint32_t control_task_period = 100; // 100 µs
-static const float32_t Ts = control_task_period * 1e-6F;
+static uint32_t control_task_period = 100; // µs
+static const float32_t Ts = control_task_period * 1e-6F; // s
 /* [bool] state of the PWM (ctrl task) */
 static bool pwm_enable = false;
+
+float32_t duty_cycle = 0.3;
 
 uint8_t received_serial_char;
 
@@ -77,47 +78,33 @@ static float32_t V_high;
 /* Temporary storage fore measured value (ctrl task) */
 static float meas_data;
 
-float32_t duty_cycle = 0.3;
-
-/* PID coefficients for a 8.6ms step response*/
-static float32_t kp = 0.000215;
-static float32_t Ti = 7.5175e-5;
-static float32_t Td = 0.0;
-static float32_t N = 0.0;
-static float32_t upper_bound = 1.0F;
-static float32_t lower_bound = 0.0F;
-static PidParams pid_params(Ts, kp, Ti, Td, N, lower_bound, upper_bound);
-static Pid pid;
-
 /* Scope variables */
 
 static const uint16_t NB_DATAS = 2048; //Number of data acquired
-static const float32_t minimal_step = 1.0F / (float32_t) NB_DATAS;
-static ScopeMimicry scope(NB_DATAS, 5);
-static bool is_downloading;
-static bool trigger = false;
+static ScopeMimicry scope(NB_DATAS, 5); // Scope configuration with 5 channels
+static bool is_downloading; // Records data if true
+static bool enable_acq = false; // Sets trigger moment if true
 static uint32_t scope_timer = 0;
 static uint32_t scope_period = 10; // scope acquire data every t = scope_period (10) * critical_task_period (100 µs) = 1 ms;
 
 /* SM test variables */
 
-static uint8_t g = 2;
-static float32_t g_float;
-static float seq_timer = 0;
+static uint8_t g = 2; // Gate signal of test module - define if it is at connected (1), disconnected (0) or blocked (2) state.
+static float32_t g_float; // Gate signal of test module - Used for gate signal acquisition by scopemimicry
+static float seq_timer = 0; // Counts time in the low-frequency sequence
 static uint32_t critical_task_timer = 0;
 static const float32_t decalage_source = 0;
-static bool Vsource_turnoff_indicator = false;
+static bool Vsource_turnoff_indicator = false; // Used to reset low-frequency sequence
 static bool Vsource_ON_once_indicator = false;
 static float32_t I_on = 0.5; // Current value when VDC is still ON
-
 /*--------------------------------------------------------------- */
 
-/* LIST OF POSSIBLE MODES FOR THE OWNTECH CONVERTER */
+/* --------------- LIST OF POSSIBLE BOARD MODES ------------------*/
 enum serial_interface_menu_mode
 {
-    IDLEMODE = 0,
-    FIRSTSEQUENCEMODE = 1,
-    SECONDSEQUENCEMODE = 2,
+    IDLEMODE = 0, // Before starting the low-frequency sequence
+    FIRSTSEQUENCEMODE = 1, // Executes first part of Low-frequency sequence (VDC is ON)
+    SECONDSEQUENCEMODE = 2, // Executes second part of Low-frequency sequence (VDC is OFF)
 };
 
 uint8_t mode = IDLEMODE;
@@ -126,9 +113,10 @@ uint8_t mode = IDLEMODE;
 
 /* Trigger function for scope manager */
 bool a_trigger() {
-    return trigger;
+    return enable_acq;
 }
 
+/* Records scope data */
 void dump_scope_datas(ScopeMimicry &scope)  {
     uint8_t *buffer = scope.get_buffer();
     /* We divide by 4 (4 bytes per float data) */
@@ -153,39 +141,33 @@ void dump_scope_datas(ScopeMimicry &scope)  {
 
 /**
  * This is the setup routine.
- * Here the setup :
- *  - Initializes the power shield in Buck mode
- *  - Initializes the power shield sensors
- *  - Initializes the PID controller
- *  - Spawns three tasks.
+ * It is used to call functions that will initialize your spin, power shields
+ * and tasks.
  */
 void setup_routine()
 {
-    /* Buck voltage mode */
-    shield.power.initBuck(LEG1);
-    shield.power.initBoost(LEG2);
+    /* Buck mode */
+    shield.power.initBuck(ALL);
 
     shield.sensors.enableDefaultTwistSensors();
 
+    /* Disconnect or connect electrolytical capacitors from low-side */
     shield.power.connectCapacitor(LEG1);
     shield.power.disconnectCapacitor(LEG2);
 
-    /* Enable switch control with max and min duty cycle*/
+    /* Enable switch control with max and min duty cycle of 1 and 0 */
     shield.power.setDutyCycleMax(ALL,1.0);
     shield.power.setDutyCycleMin(ALL,0.0);
 
-    /* Configure scope channels, what measurelents do you want to acquire? */
-    scope.connectChannel(I1_low_value, "I_SM");
-    scope.connectChannel(V1_low_value, "V_SM");
-    scope.connectChannel(g_float, "mode");
-    scope.connectChannel(seq_timer, "time"); // to verify if there is nothing
-    scope.connectChannel(V_high, "V_high"); // to verify capacitor voltage
+    /* Configures scopemimicry measured variables */
+    scope.connectChannel(I1_low_value, "I_SM"); // Module current
+    scope.connectChannel(V1_low_value, "V_SM"); // Module voltage
+    scope.connectChannel(g_float, "state"); // 1 = connected; 0 = disconnected; 2 = blocked
+    scope.connectChannel(seq_timer, "time");
+    scope.connectChannel(V_high, "V_high"); // Module capacitor voltage
     scope.set_trigger(&a_trigger);
     scope.set_delay(0.0F);
     scope.start();
-    //Vc_BTS indicates the bootstrap capacitor charge level, we have to measure it externally
-
-    pid.init(pid_params);
 
     /* Then declare tasks */
     uint32_t app_task_number = task.createBackground(loop_application_task);
@@ -201,8 +183,13 @@ void setup_routine()
 /*--------------LOOP FUNCTIONS-------------------------------- */
 
 /**
- * This tasks implements a minimalistic USB serial interface to control
- * the buck converter.
+ * This is the communication task.
+ * It is used to send to the board via the computer the desired mode
+ * IDLE (i) = before starting the sequence.
+ * FIRST SEQUENCE (f) = start MMC module test with low-frequency sequence.
+ * SECOND SEQUENCE (s) = start second part of low-frequency sequence (automatically changed when VDC OFF).
+ * 
+ * It also sends scope data retrieve commands (r).
  */
 void loop_communication_task()
 {
@@ -226,7 +213,7 @@ void loop_communication_task()
     case 'f':
         printk("first sequence part\n");
         mode = FIRSTSEQUENCEMODE;
-        trigger = true;
+        enable_acq = true;
         seq_timer = 0;
         break;
     case 's':
@@ -236,7 +223,7 @@ void loop_communication_task()
         break;
     case 'r':
         is_downloading = true;
-        trigger = false;
+        enable_acq = false;
         break;
     default:
         break;
@@ -245,7 +232,11 @@ void loop_communication_task()
 
 /**
  * This is the code loop of the background task
- * This task mostly logs back measurements to the USB serial interface.
+ * It runs perpetually. Here a `suspendBackgroundMs` is used to pause during
+ * 1000ms between each LED toggles.
+ * Hence we expect the LED to blink each 1 seconds.
+ * 
+ * It also prints some measurements in the terminal for user verification.
  */
 void loop_application_task()
 {
@@ -266,7 +257,6 @@ void loop_application_task()
         spin.led.toggle();
     }
 
-
         printk("%.3f:", (double)I1_low_value);
         printk("%.3f:", (double)V1_low_value);
         printk("%.3f:", (double)g);
@@ -281,14 +271,17 @@ void loop_application_task()
 
 /**
  * This is the code loop of the critical task
- * This task runs at 10kHz.
- *  - It retrieves sensors values
- *  - It runs the PID controller
- *  - It update the PWM signals
+ * It is executed every 100 micro-seconds defined in the setup_software
+ * function.
+ *
+ * In the critical task, we implement the module control that will
+ * run in Real Time during the test.
+ * 
+ * The critical task coordinates the module through the low-frequency test sequence.
  */
 void loop_critical_task()
 {
-    
+    /* Acquire voltage and current measurements of the module */
     meas_data = shield.sensors.getLatestValue(I1_LOW);
     if (meas_data != NO_VALUE) I1_low_value = -meas_data;
     
@@ -306,15 +299,9 @@ void loop_critical_task()
 
     meas_data = shield.sensors.getLatestValue(V_HIGH);
     if (meas_data != NO_VALUE) V_high = meas_data;
-    /*
-    //For testing logic
-    if(critical_task_timer == 100000)
-        {
-            V1_low_value=20;
-        }
-    */
 
-    if (mode == IDLEMODE)
+
+    if (mode == IDLEMODE) // Before starting the low-frequency sequence
     {
         if (pwm_enable == true)
         {
@@ -322,38 +309,38 @@ void loop_critical_task()
         }
         pwm_enable = false;
 
-        if (V1_low_value<2) // If VDC is OFF, sequence can be restarted without uploading again
+        if (V1_low_value<2) // If VDC is OFF, sequence can be restarted without uploading code in the board again
         {
             Vsource_ON_once_indicator = false;
         }
 
         if (V1_low_value>=2 && Vsource_ON_once_indicator == false) // If VDC is ON, starts sequence with small delay
         {
-            mode = FIRSTSEQUENCEMODE;
-            trigger = true;
+            mode = FIRSTSEQUENCEMODE; // Starts sequence with first part
+            enable_acq = true; // Starts scope data acquistion
             Vsource_ON_once_indicator = true;
             seq_timer = 0;
         }
     }
 
-    else if (mode == FIRSTSEQUENCEMODE)
+    else if (mode == FIRSTSEQUENCEMODE) // Executes low-frequency sequence first part
     {
         
-        if(seq_timer >= 0 && seq_timer < 0.1) // BLOCK
+        if(seq_timer >= 0 && seq_timer < 0.1) // Blocked state from 0 to 0.1 s
         {
             g=2;
             
         }
-        if(seq_timer >= 0.1 && seq_timer < 0.2) // ON
+        if(seq_timer >= 0.1 && seq_timer < 0.2) // Connected state from 0.1 to 0.2 s
         {
             g=1;
         }
-        if(seq_timer >= 0.2) // OFF
+        if(seq_timer >= 0.2) // Disconnected state from 0.2 s
         {
             g=0;
 
         }
-        if(seq_timer >= 0.45) // OFF
+        if(seq_timer >= 0.45) // Disconnected state from 0.45 s waiting for VDC to be turned OFF to start second part of the test sequence
         {
             g=0;
             if (I1_low_value < I_on) // If VDC is TURNED OFF, pass to second part of the sequence
@@ -363,9 +350,9 @@ void loop_critical_task()
             }
         }
 
-        g_float = (float)g;
-        
         /* Scope data acquisition */
+        g_float = (float)g;
+            
         if (scope_timer == scope_period)
         {
             scope.acquire();
@@ -373,57 +360,60 @@ void loop_critical_task()
         }
         scope_timer++;
         
-        if(g == 0) // SM is off
+        /* Module states programming */
+        if(g == 0) //If g = 0, module is at disconnected state
         {
-            shield.power.setDutyCycle(LEG1,0.0);
+            shield.power.setDutyCycle(LEG1,0.0); // Duty cycle = 0 makes Q1 open and Q2 closed
             if (!pwm_enable)
             {
                 pwm_enable = true;
                 shield.power.start(LEG1);
             }
         }
-        if(g == 1) // SM is on
+        if(g == 1) //If g = 1, module is at connected state
         {
-            shield.power.setDutyCycle(LEG1,1.0);
+            shield.power.setDutyCycle(LEG1,1.0); // Duty cycle = 1 makes Q1 closed and Q2 open
             if (!pwm_enable)
             {
                 pwm_enable = true;
                 shield.power.start(LEG1);
             }
         }            
-        if(g == 2) // SM is blocked
+        if(g == 2) //If g = 2, module is at blocked state
         {
             if (pwm_enable == true)
             {
-                shield.power.stop(ALL);
+                shield.power.stop(ALL); // Makes Q1 open and Q2 open
             }
             pwm_enable = false;
         }            
         
         seq_timer += Ts;
     }
-    else if (mode == SECONDSEQUENCEMODE)
+    else if (mode == SECONDSEQUENCEMODE) // Executes low-frequency sequence second part
     {
 
-        if(seq_timer >= 0.2 && seq_timer < 0.7) // OFF
+        /* seq_timer starts at 0.45 s (line 349) */
+        if(seq_timer >= 0.2 && seq_timer < 0.7) // Disconnected state from 0.2 to 0.7 s
         {
             g=0;
         }
-        if(seq_timer >= 0.7 && seq_timer < 0.8) // BLOCK
+        if(seq_timer >= 0.7 && seq_timer < 0.8) // Blocked state from 0.7 to 0.8 s
         {
             g=2;
         }
-        if(seq_timer >= 0.8 && seq_timer < 1) // ON
+        if(seq_timer >= 0.8 && seq_timer < 1) // Connected state from 0.8 to 1 s
         {
             g=1;
         }
-        if(seq_timer >= 1) // IDLE
+        if(seq_timer >= 1) // After 1 s, returns to pre-sequence mode
         {
             mode = IDLEMODE;
         }
+
+        /* Scope data acquisition */
         g_float = (float)g;
         
-        /* Scope data acquisition */
         if (scope_timer == scope_period)
         {
             scope.acquire();
@@ -431,29 +421,29 @@ void loop_critical_task()
         }
         scope_timer++;
         
-        if(g == 0) // SM is off
+        if(g == 0) //If g = 0, module is at disconnected state
         {
-            shield.power.setDutyCycle(LEG1,0.0);
+            shield.power.setDutyCycle(LEG1,0.0); // Duty cycle = 0 makes Q1 open and Q2 closed
             if (!pwm_enable)
             {
                 pwm_enable = true;
                 shield.power.start(LEG1);
             }
         }
-        if(g == 1) // SM is on
+        if(g == 1) //If g = 1, module is at connected state
         {
-            shield.power.setDutyCycle(LEG1,1.0);
+            shield.power.setDutyCycle(LEG1,1.0); // Duty cycle = 1 makes Q1 closed and Q2 open
             if (!pwm_enable)
             {
                 pwm_enable = true;
                 shield.power.start(LEG1);
             }
         }            
-        if(g == 2) // SM is blocked
+        if(g == 2) //If g = 2, module is at blocked state
         {
             if (pwm_enable == true)
             {
-                shield.power.stop(ALL);
+                shield.power.stop(ALL); // Makes Q1 open and Q2 open
             }
             pwm_enable = false;
         }            
