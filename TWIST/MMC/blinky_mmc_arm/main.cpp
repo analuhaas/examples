@@ -173,8 +173,8 @@ static bool is_downloading; // Records data if true
 
 /* SM switching variables */
 
-static float32_t number_of_connected_submodules_upper_arm; // Stores number of modules connected in the upper arm (NLM output)
-static float32_t number_of_connected_submodules_lower_arm; // Stores number of modules connected in the lower arm (NLM output)
+static float32_t number_of_connected_submodules_upper_arm; // Stores number of modules connected in the upper arm
+static float32_t number_of_connected_submodules_lower_arm; // Stores number of modules connected in the lower arm
 static uint8_t seq_u[6] = {1, 2, 3, 2, 1, 0}; // Connection sequence for upper arm
 static uint8_t seq_l[6] = {2, 1, 0, 1, 2, 3}; // Connection sequence for lower arm
 static uint8_t counter_seq = 0;
