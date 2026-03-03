@@ -492,7 +492,7 @@ serial_interface_menu_mode mode = IDLEMODE;
 
 void loop_communication_task(); // Code to be executed in the communication task
 
-/* --------------- Firmware CVB variables ------------------*/
+/* --------------- Firmware and control variables ------------------*/
 
 /* [us] period of the control task (=critical task) */
 static uint32_t control_task_period = 100; // µs
@@ -970,7 +970,7 @@ void loop_critical_task()
 
             /* Modules state assignment according to CVB output in the communication trame */
             for (uint8_t counter = 0; counter < total_number_of_modules_arm; counter++) {
-                // mmc_frame_set_sm_inserted(trame_communication, fonction du module (SM1,SM2,SM3,...), g_u associé au module (SM1,SM2,SM3,...))
+                // mmc_frame_set_sm_inserted(trame_communication, module function (SM1,SM2,SM3,...), g_u associated to the module (SM1,SM2,SM3,...))
                 // g_u[counter]: true = connected, false = disconnected
                 mmc_frame_set_sm_inserted(dataTX_mmc, MMC_SM1 + counter, g_u[counter] != 0U);
             }
