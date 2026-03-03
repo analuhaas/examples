@@ -484,8 +484,8 @@ static bool master = false;
 /* --------------- LIST OF POSSIBLE BOARD MODES ------------------*/
 enum serial_interface_menu_mode
 {
-    IDLEMODE = 0, // Related to blocked mode
-    POWERMODE = 1, // Related to connected/disconnected mode
+    IDLEMODE = 0, // Related to blocked state
+    POWERMODE = 1, // Related to connected/disconnected state
 };
 
 serial_interface_menu_mode mode = IDLEMODE;
@@ -747,7 +747,6 @@ void setup_routine()
 
     /* Finally, start tasks */
     task.startBackground(background_task_number);
-    /* Uncomment following line if you use the critical task */
     task.startCritical();
     CommTask_num = task.createBackground(loop_communication_task);
     task.startBackground(CommTask_num);
@@ -944,8 +943,7 @@ void loop_critical_task()
 
     if (mode == POWERMODE)
     {
-        /* The lead sends commands to the followers */
-        if (module_ID == MMC_LEAD)
+        if (module_ID == MMC_LEAD) //CONTROL INSIDE LEAD - Modulation NLM + CVB algorithm execution
         {
             /* Modulation signal generation in open-loop */
             angle += w0 * Ts;
@@ -955,8 +953,8 @@ void loop_critical_task()
             modulation_signal_lower = (a - m * ot_sin(angle)) / (2.0);
 
             /* Number of modules N_on to be connected on the arm according to modulation signal by Nearest Level Modulation (NLM)  */
-            number_of_connected_submodules_upper_arm = round(total_number_of_modules_arm*modulation_signal_upper); // recuperate for scope
-            number_of_connected_submodules_lower_arm = round(total_number_of_modules_arm*modulation_signal_lower); // recuperate for scope
+            number_of_connected_submodules_upper_arm = round(total_number_of_modules_arm*modulation_signal_upper);
+            number_of_connected_submodules_lower_arm = round(total_number_of_modules_arm*modulation_signal_lower);
 
             /* Updating arm current measurements and filtering */
             i_upper_arm = MMC_arm_current[0];
@@ -979,11 +977,12 @@ void loop_critical_task()
 
             /* Modules state assignment according to CVB output */
             for (uint8_t counter = 0; counter < total_number_of_modules_arm; counter++) {
-                // true = connected, false = disconnected
+                // mmc_frame_set_sm_inserted(trame_communication, fonction du module (SM1,SM2,SM3,...), g_u associé au module (SM1,SM2,SM3,...))
+                // g_u[counter]: true = connected, false = disconnected
                 mmc_frame_set_sm_inserted(dataTX_mmc, MMC_SM1 + counter, g_u[counter] != 0U);
             }
 
-            /* Fills all communication trame spaces and LEAD communicates to MODULES */
+            /* Fills all other communication trame spaces */
             dataTX_mmc.status.raw = 0U; // Reset status code
 
             mmc_frame_set_status_code(dataTX_mmc, POWER);
@@ -993,6 +992,7 @@ void loop_critical_task()
             mmc_frame_set_current_raw(dataTX_mmc, mmc_encode_current(Arm_current));
             memcpy(buffer_tx, &dataTX_mmc, sizeof(dataTX_mmc));
 
+            /* LEAD communicates to MODULES */
             communication.rs485.startTransmission();
 
             /* Scope data acquisition */
@@ -1010,7 +1010,7 @@ void loop_critical_task()
             scope_timer++;
             critical_task_timer++;
         }
-        else
+        else //CONTROL INSIDE MODULE - own switching only
         {
             
             /* Verifies if module received command changed */
