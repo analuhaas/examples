@@ -199,9 +199,10 @@ void loop_communication_task()
     case 'h':
         /*----------SERIAL INTERFACE MENU----------------------- */
         printk(" ________________________________________ \n"
-               "|     ---- MENU buck voltage mode ----   |\n"
+               "|     ---- MENU module LF test ----      |\n"
                "|     press i : idle mode                |\n"
-               "|     press d : discharge capacitor mode |\n"
+               "|     press f : sequence first part mode |\n"
+               "|     press s : sequence second part mode|\n"
                "|     press r : download datas           |\n"
                "|________________________________________|\n\n");
         /*------------------------------------------------------ */
