@@ -176,7 +176,7 @@ void setup_routine()
     /* Configures scopemimicry measured variables */
     scope.connectChannel(I1_low_value, "I1low"); // Module current
     scope.connectChannel(V1_low_value, "V1low"); // Module voltage
-    scope.connectChannel(g_float, "mode"); // 1 = connected; 0 = disconnected; 2 = blocked
+    scope.connectChannel(g_float, "state"); // 1 = connected; 0 = disconnected; 2 = blocked
     scope.connectChannel(seq_timer, "time"); 
     scope.connectChannel(V_high, "V_high"); // Module capacitor voltage
     scope.set_trigger(&a_trigger);
