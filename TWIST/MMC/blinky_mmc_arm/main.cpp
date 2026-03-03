@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-present LAAS-CNRS
+ * Copyright (c) 2026-present LAAS-CNRS
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU Lesser General Public License as published by
@@ -37,14 +37,13 @@
 #include "CommunicationAPI.h"
 
 /*--------------OWNTECH Libraries----------------------------- */
-#include "pid.h"
 #include "arm_math_types.h"
 #include <ScopeMimicry.h>
 
 /*-- Zephyr includes --*/
 #include "zephyr/console/console.h"
 
-/* Boards roles, LEAD = MMC_LEAD */
+/* -----Boards roles identification, LEAD = MMC_LEAD---------- */
 #define MMC_LEAD 0
 #define MMC_M1 1
 #define MMC_M2 2
@@ -53,6 +52,7 @@
 #define MMC_M5 5
 #define MMC_M6 6
 
+/* --------- BOARD IDENTIFICATION functions ------------------ */
 /**
  * @brief This function is considering a byte called 'cmd'
  *        which can turn on or off signals.
@@ -83,18 +83,20 @@ void setup_routine();
 
 /* --------------LOOP FUNCTIONS DECLARATION-------------------- */
 
-/* Code to be executed in the background task */
+/* Code to be executed in the background task - only sets up boards LEDs */
 void loop_background_task();
-/* Code to be executed in real time in the critical task */
+/* Code to be executed in real time in the critical task - executes all LEAD and MODULES control logics */
 void loop_critical_task();
+/* Code to be executed in the communication task - serves to send command to board via PC using USB-C cable */
+void loop_communication_task();
 
 /* --------------USER VARIABLES DECLARATIONS------------------- */
 
-/* Define module_ID depending on the ID of the board */
+/* Define module_ID depending on the ID of the board - To be changed by the user */
 uint8_t module_ID = MMC_M1; // The ID of the module, can be set to MMC_LEAD or any other SMx
 
 static uint8_t module_comand; // The command the followers needs to apply
-static uint8_t module_command_past;
+static uint8_t module_command_past; // The command the followers applied in t-1 (last critical task)
 static bool change_state_command = false; // Flag to change the state of the command
 static bool send_idle = false;            // Flag to send idle command from master to followers
 
@@ -130,20 +132,21 @@ uint32_t counter_receive = 0;
 uint8_t received_serial_char; // Variable to store the received character from the serial interface
 int8_t CommTask_num;
 
-enum serial_interface_menu_mode // LIST OF POSSIBLE MODES FOR THE OWNTECH CONVERTER
+/* --------------- LIST OF POSSIBLE BOARD MODES ------------------*/
+enum serial_interface_menu_mode
 {
-    IDLEMODE = 0,
-    POWERMODE = 1,
+    IDLEMODE = 0, // Related to blocked state
+    POWERMODE = 1, // Related to connected/disconnected state
 };
 
 serial_interface_menu_mode mode = IDLEMODE;
 
 void loop_communication_task(); // Code to be executed in the communication task
 
-/* --------------- Firmware CVB variables ------------------*/
+/* --------------- Firmware and control variables ------------------*/
 
 /* [us] period of the control task (=critical task) */
-static uint32_t control_task_period = 100; // 100 µs
+static uint32_t control_task_period = 100; // µs
 /* [bool] state of the PWM (ctrl task) */
 static bool pwm_enable = false;
 
@@ -170,26 +173,24 @@ static bool is_downloading; // Records data if true
 
 /* SM switching variables */
 
-static float32_t number_of_connected_submodules_upper_arm;
-static float32_t number_of_connected_submodules_lower_arm;
+static float32_t number_of_connected_submodules_upper_arm; // Stores number of modules connected in the upper arm (NLM output)
+static float32_t number_of_connected_submodules_lower_arm; // Stores number of modules connected in the lower arm (NLM output)
 static uint8_t seq_u[6] = {1, 2, 3, 2, 1, 0}; // Connection sequence for upper arm
 static uint8_t seq_l[6] = {2, 1, 0, 1, 2, 3}; // Connection sequence for lower arm
 static uint8_t counter_seq = 0;
 static uint32_t sw_timer = 0;
 static uint32_t scope_timer = 0;
-// static uint32_t f_sw = 2; // 2 Hz = 0.5 s to transition;
-// static uint32_t sw_period = 1/(f_sw*control_task_period)*1000000; // 2 Hz = 0.5 s frequency to transition to next connection sequence value;
-static uint32_t sw_period = 1000; // 2 Hz = 0.5 s period to transition to next connection sequence value;
+static uint32_t sw_period = 1000; // 1 Hz = 1 s period to transition to next connection sequence value;
 static uint32_t scope_period = 1; // scope acquire data every t = scope_period * critical_task_period (100 µs) s;
 
 /* Gate logic */
-uint8_t g[3] = {0, 0, 0}; // Gate signals to send to the modules
-static float32_t g_u_1;
-static float32_t g_u_2;
-static float32_t g_u_3;
-static float32_t g_l_1;
-static float32_t g_l_2;
-static float32_t g_l_3;
+uint8_t g[3] = {0, 0, 0}; // Gate signals to be sent to the modules
+static float32_t g_u_1; // Gate signal M1 - Used for gate signal acquisition by scopemimicry
+static float32_t g_u_2; // Gate signal M2 - Used for gate signal acquisition by scopemimicry
+static float32_t g_u_3; // Gate signal M3 - Used for gate signal acquisition by scopemimicry
+static float32_t g_l_1; // Gate signal M4 - Used for gate signal acquisition by scopemimicry
+static float32_t g_l_2; // Gate signal M5 - Used for gate signal acquisition by scopemimicry
+static float32_t g_l_3; // Gate signal M6 - Used for gate signal acquisition by scopemimicry
 
 /* --------------SETUP FUNCTIONS------------------------------- */
 
@@ -219,6 +220,7 @@ bool a_trigger()
     return enable_acq;
 }
 
+/* Records scope data */
 void dump_scope_datas(ScopeMimicry &scope)
 {
     uint8_t *buffer = scope.get_buffer();
@@ -288,29 +290,26 @@ void reception_function(void)
  * This is the setup routine.
  * It is used to call functions that will initialize your spin, power shields
  * and tasks.
- *
- * In this example, we spawn a background task and a critical task
  */
 void setup_routine()
 {
 
-    config_led_LL(); // Configure the LED pin in Low Level
+    /* Configure the LED pin in Low Level */
+    config_led_LL();
 
+    /* Buck mode */
     shield.power.initBuck(ALL);
+
     /* Declare task */
     uint32_t background_task_number =
         task.createBackground(loop_background_task);
-
-    /* Uncomment following line if you use the critical task */
     task.createCritical(loop_critical_task, 100);
 
     shield.sensors.enableDefaultTwistSensors();
 
     /* Finally, start tasks */
     task.startBackground(background_task_number);
-    /* Uncomment following line if you use the critical task */
     task.startCritical();
-
     CommTask_num = task.createBackground(loop_communication_task);
     task.startBackground(CommTask_num);
 
@@ -320,6 +319,10 @@ void setup_routine()
                                               /* Configure scope channels, what measurements do you want to acquire? */
     if (module_ID == MMC_LEAD)
     {
+        /* Defines lead's clock as reference for communication synchorinization */
+        communication.sync.initMaster();
+
+        /* Configures scopemimicry measured variables */
         scope.connectChannel(number_of_connected_submodules_upper_arm, "N_u");
         scope.connectChannel(number_of_connected_submodules_lower_arm, "N_l");
         scope.connectChannel(g_u_1, "g_u_1");
@@ -329,10 +332,21 @@ void setup_routine()
         scope.set_delay(0.0F);
         scope.start();
     }
+    else{
+        /* Defines module as follower for communication synchorinization */
+        communication.sync.initSlave();
+    }
 }
 
 /* --------------LOOP FUNCTIONS-------------------------------- */
 
+/**
+ * This is the communication task.
+ * It is used to send to the board via the computer the desired mode
+ * IDLE (i) = block all modules or POWER (p) = operate Blinky MMC arm.
+ * 
+ * It also sends data acquisition start command (a) and scope data retrieve commands (r).
+ */
 void loop_communication_task()
 {
     received_serial_char = console_getchar();
@@ -373,8 +387,8 @@ void loop_communication_task()
 /**
  * This is the code loop of the background task
  * It runs perpetually. Here a `suspendBackgroundMs` is used to pause during
- * 1000ms between each LED toggles.
- * Hence we expect the LED to blink each second.
+ * 2000ms between each LED toggles.
+ * Hence we expect the LED to blink each 2 seconds.
  */
 void loop_background_task()
 {
@@ -407,37 +421,35 @@ void loop_background_task()
 }
 
 /**
- * Uncomment lines in setup_routine() to use critical task.
- *
  * This is the code loop of the critical task
- * It is executed every 500 micro-seconds defined in the setup_software
- * function. You can use it to execute an ultra-fast code with
- * the highest priority which cannot be interrupted by the background tasks.
+ * It is executed every 100 micro-seconds defined in the setup_software
+ * function.
  *
- * In the critical task, you can implement your control algorithm that will
- * run in Real Time and control your power flow.
+ * In the critical task, we implement the MMC control algorithms that will
+ * run in Real Time.
  */
 void loop_critical_task()
 {
     if (mode == POWERMODE)
     {
-        /* The lead sends commands to the followers */
-        if (module_ID == MMC_LEAD)
+        if (module_ID == MMC_LEAD) //CONTROL INSIDE LEAD - Connection seq generation + sets modules connection order
         {
-            /* Connection sequence triangular format generation */
+            /* Connection sequence of "triangular" format generation */
             if (sw_timer == sw_period)
             {
                 if (counter_seq >= 6)
                 {
                     counter_seq = 0;
                 }
-                number_of_connected_submodules_upper_arm = (float)seq_u[counter_seq]; // recuperate for scope
-                number_of_connected_submodules_lower_arm = (float)seq_l[counter_seq]; // recuperate for scope
+
+                /* Number of modules N_on to be connected on the arm according to generated sequence */
+                number_of_connected_submodules_upper_arm = (float)seq_u[counter_seq];
+                number_of_connected_submodules_lower_arm = (float)seq_l[counter_seq];
                 counter_seq++;
                 sw_timer = 0;
             }
 
-            /* Gate assignment with preference order M1 > M2 > M3 */
+             /* Modules choice with preference order M1 > M2 > M3 */
             if (number_of_connected_submodules_upper_arm == 0)
             {
                 g[0] = 0;
@@ -463,11 +475,11 @@ void loop_critical_task()
                 g[2] = 1;
             }
 
+            /* Scope data acquisition */
             g_u_1 = (float)g[0]; // recuperate for scope
             g_u_2 = (float)g[1]; // recuperate for scope
             g_u_3 = (float)g[2]; // recuperate for scope
 
-            /* Scope data acquisition */
             if (scope_timer == scope_period)
             {
                 scope.acquire();
@@ -476,38 +488,42 @@ void loop_critical_task()
             sw_timer++;
             scope_timer++;
 
-            /* Set gate value to be sent to the modules */
+            /* Modules state assignment according to preference order to be sent to the modules */
             SET_SIGNAL(dataTX_mmc.command, MMC_M1, g[0]);
             SET_SIGNAL(dataTX_mmc.command, MMC_M2, g[1]);
             SET_SIGNAL(dataTX_mmc.command, MMC_M3, g[2]);
 
+            /* Fills all other communication trame spaces */
             dataTX_mmc.ID = module_ID;
             memcpy(buffer_tx, &dataTX_mmc, sizeof(dataTX_mmc));
             dataTX_mmc.status = 1;
-            communication.rs485.startTransmission(); // Starts message transmission to other boards
+
+            /* LEAD communicates to MODULES */
+            communication.rs485.startTransmission();
         }
-        else
+        else //CONTROL INSIDE MODULE - own LED switching only
         {
-            /* Verifies if command to be ON or OFF changed */
+            /* Verifies if module received command changed */
             if (module_comand != module_command_past)
             {
                 change_state_command = true; // Set the flag to change the state
             }
 
-            /* Sets LED ON if gate command is 1 or OFF if gate command is 0 */
+            //If command is 1, module changes to connected state and LED turns ON
             if (module_comand)
             {
                 if (change_state_command)
                 {
-                    Led_turnON_LL();
+                    Led_turnON_LL(); // Turn ON SPIN LED
                     change_state_command = false; // Reset the flag
                 }
             }
+            //If command is 0, module changes to disconnected state and LED turns OFF
             else
             {
                 if (change_state_command)
                 {
-                    Led_turnOFF_LL();
+                    Led_turnOFF_LL(); // Turn OFF SPIN LED
                     change_state_command = false; // Reset the flag
                 }
             }
@@ -516,7 +532,7 @@ void loop_critical_task()
     }
     else if (mode == IDLEMODE)
     {
-        /* Made to send IDLE flag only once to all modules */
+        /* Made  such that the LEAD send IDLE flag only once to all modules */
         if (!send_idle)
         {
             dataTX_mmc.ID = module_ID;
