@@ -82,7 +82,6 @@ constexpr float32_t overvoltage_tolerance = 80.0F; //[V] Set overvoltage toleran
 constexpr float32_t overcurrent_tolerance = 8.0F; //[A] Set overcurrent tolerance (default max TWIST current)
 
 /* -------------- BOARD IDENTIFICATION ----------------------- */
-/* --------------- To be changed by user --------------------- */
 
 constexpr uint32_t UID_MMC_LEAD_BOARD = 0x002B002A;
 constexpr uint32_t UID_MMC_SM1_BOARD = 0x0031001B;
@@ -227,7 +226,7 @@ void loop_communication_task();
 uint8_t module_ID = detect_module_id(); // The ID of the module, can be set to MMC_LEAD or any other SMx
 
 static uint8_t module_comand; // The command the followers needs to apply
-static uint8_t module_command_past; // The command the followers applied in t-1 (last critical task)
+static uint8_t module_command_past;
 static bool change_state_command = false; // Flag to change the state of the command
 static bool send_idle = false;            // Flag to send idle command from master to followers
 
@@ -495,7 +494,7 @@ serial_interface_menu_mode mode = IDLEMODE;
 /* --------------- Firmware CVB variables ------------------*/
 
 /* [us] period of the control task (=critical task) */
-static uint32_t control_task_period = 100; // µs
+static constexpr uint32_t control_task_period = 100; // µs
 static float32_t Ts = control_task_period * 1e-6F; // s
 /* [bool] state of the PWM (ctrl task) */
 static bool pwm_enable = false;
@@ -542,28 +541,28 @@ static float32_t i_lower_arm= -1.0F; // Lower arm current - will be updated with
 /* Gate logic */
 uint8_t g_u[total_number_of_modules_arm]; // Gate signals to send to the upper modules
 uint8_t g_l[total_number_of_modules_arm]; // Gate signals to send to the lower modules
-static float32_t g_u_1; // Gate signal M1 - Used for gate signal acquisition by scopemimicry
-static float32_t g_u_2; // Gate signal M2 - Used for gate signal acquisition by scopemimicry
-static float32_t g_u_3; // Gate signal M3 - Used for gate signal acquisition by scopemimicry
-static float32_t g_u_4; // Gate signal M4 - Used for gate signal acquisition by scopemimicry
-static float32_t g_u_5; // Gate signal M5 - Used for gate signal acquisition by scopemimicry
-static float32_t g_l_1; // Gate signal M6 - Used for gate signal acquisition by scopemimicry
-static float32_t g_l_2; // Gate signal M7 - Used for gate signal acquisition by scopemimicry
-static float32_t g_l_3; // Gate signal M8 - Used for gate signal acquisition by scopemimicry
-static float32_t g_l_4; // Gate signal M9 - Used for gate signal acquisition by scopemimicry
-static float32_t g_l_5; // Gate signal M10 - Used for gate signal acquisition by scopemimicry
+static float32_t g_u_1;
+static float32_t g_u_2;
+static float32_t g_u_3;
+static float32_t g_u_4;
+static float32_t g_u_5;
+static float32_t g_l_1;
+static float32_t g_l_2;
+static float32_t g_l_3;
+static float32_t g_l_4;
+static float32_t g_l_5;
 
 /* NLM */
-static float32_t m = 1; // Modulation amplitude
-static float32_t a = 1; // Modulation dc part
+static float32_t m = 1;
+static float32_t a = 1;
 static float32_t angle;
-static const float w0 = 2 * PI * f0; // Angular frequency
-static float32_t modulation_signal_upper; //[pu] Modulation output upper voltage
-static float32_t modulation_signal_lower; //[pu] Modulation output lower voltage
+static const float w0 = 2 * PI * f0;
+static float32_t modulation_signal_upper;
+static float32_t modulation_signal_lower;
 
 /* Current measurement filter */
 
-LowPassFirstOrderFilter i_low_filter(Ts, 180e-6F); // Lowpass filter with tau = 180µs -> fc = 880 Hz
+LowPassFirstOrderFilter i_low_filter(Ts, 180e-6F);
 static float32_t i_lowfilter_value;
 
 /* Oscillations treatment */
@@ -574,6 +573,8 @@ static float32_t duty_cycle_ramp_down[duty_cycle_ramp_size] = {0.75F, 0.5F, 0.25
 static constexpr uint32_t duty_cycle_ramp_step_period_us = 500U;
 static constexpr uint32_t duty_cycle_ramp_step_ticks =
     (duty_cycle_ramp_step_period_us + control_task_period - 1U) / control_task_period;
+// static float32_t duty_cycle_ramp_up[12] = {0.25,0.25,0.25,0.5,0.5,0.5,0.75,0.75,0.75,0.95,0.95,0.95}; // Duty cycle ramp in 4 levels to reduce oscillations
+// static float32_t duty_cycle_ramp_down[12] = {0.75,0.75,0.75,0.5,0.5,0.5,0.25,0.25,0.25,0.0,0.0,0.0}; // Duty cycle ramp in 4 levels to reduce oscillations
 uint32_t duty_cycle_counter = 0;
 uint32_t duty_cycle_step_counter = 0;
 
@@ -610,6 +611,7 @@ static inline void duty_cycle_ramp_apply(bool module_inserted)
 
     shield.power.setDutyCycle(LEG1, duty_cycle);
 }
+
 
 /* --------------SETUP FUNCTIONS------------------------------- */
 
@@ -765,7 +767,6 @@ void reception_function(void)
  */
 void setup_routine()
 {
-
     /* Informs the module ID in the terminal */
     const uint32_t board_uid = read_board_uid();
     printk("Board UID: 0x%08" PRIX32 "\n", board_uid);
@@ -792,6 +793,7 @@ void setup_routine()
 
     /* Finally, start tasks */
     task.startBackground(background_task_number);
+    /* Uncomment following line if you use the critical task */
     task.startCritical();
     CommTask_num = task.createBackground(loop_communication_task);
     task.startBackground(CommTask_num);
@@ -835,7 +837,6 @@ void setup_routine()
 }
 
 /* --------------LOOP FUNCTIONS-------------------------------- */
-
 /**
  * This is the communication task.
  * It is used to send to the board via the computer the desired mode
@@ -921,9 +922,9 @@ void sorting_upper_arm()
     
     /* Sorts upper modules indexes according to capacitor voltage in ascending order (lower to higher voltage) */
     uint8_t counter_loops_sorting = 0;
-    while(counter_loops_sorting < total_number_of_modules_arm + 1){ // Sorts modules indexes according to capacitor voltage
-        /* Bubble sorting technique - simple */    
-        for(uint8_t counter = 0; counter < total_number_of_modules_arm-1; counter++)
+    while(counter_loops_sorting < total_number_of_modules_arm + 1){ 
+        /* Bubble sorting technique - simple */  
+            for(uint8_t counter = 0; counter < total_number_of_modules_arm-1; counter++)
             {
                 if(modules_capacitor_voltages_upper_arm[counter] > modules_capacitor_voltages_upper_arm[counter + 1])
                 {
@@ -938,6 +939,7 @@ void sorting_upper_arm()
 
             counter_loops_sorting++;
         }
+    
     /* Choses the modules to connect to the upper arm according to capacitor voltages and arm current */
     for(uint8_t counter = 0; counter < total_number_of_modules_arm; counter++) 
         {
@@ -955,6 +957,7 @@ void sorting_upper_arm()
                     g_u[index_smallest_voltage_capacitor_upper_arm] = 0;
                 }
             }
+
             /* Negative arm current */
             // Connect modules with highest capacitor voltages
             // Disconnect modules with smallest capacitor voltages
@@ -988,6 +991,7 @@ void loop_critical_task()
 
     if (mode == POWERMODE)
     {
+        
         if (module_ID == MMC_LEAD) //CONTROL INSIDE LEAD - Modulation NLM + CVB algorithm execution
         {
             /* Modulation signal generation in open-loop */
@@ -998,14 +1002,14 @@ void loop_critical_task()
             modulation_signal_lower = (a - m * ot_sin(angle)) / (2.0);
 
             /* Number of modules N_on to be connected on the arm according to modulation signal by Nearest Level Modulation (NLM)  */
-            number_of_connected_submodules_upper_arm = round(total_number_of_modules_arm*modulation_signal_upper); 
+            number_of_connected_submodules_upper_arm = round(total_number_of_modules_arm*modulation_signal_upper);
             number_of_connected_submodules_lower_arm = round(total_number_of_modules_arm*modulation_signal_lower);
 
             /* Updating arm current measurements and filtering */
             i_upper_arm = MMC_arm_current[0];
             i_lowfilter_value = i_low_filter.calculateWithReturn(i_upper_arm); // filtered current value
             i_upper_arm = i_lowfilter_value;
-            
+
             /* Modules choice with Capacitor Voltage Balancing (CVB) sorting */
             // Executed only when N_on changes
             if (number_of_connected_submodules_upper_arm != number_of_connected_submodules_upper_arm_past){
@@ -1017,7 +1021,6 @@ void loop_critical_task()
                 sorting_upper_arm();
                 number_of_connected_submodules_upper_arm_past = number_of_connected_submodules_upper_arm;
             }
-
 
             dataTX_mmc.sm_insertion.raw = 0U;
 
@@ -1072,7 +1075,6 @@ void loop_critical_task()
             {
                 change_state_command = false; // Reset the flag
             }
-            
             duty_cycle_ramp_apply(module_inserted);
 
             if (!pwm_enable)
