@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2026-present LAAS-CNRS
+ * Copyright (c) 2021-present LAAS-CNRS
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU Lesser General Public License as published by
@@ -18,7 +18,7 @@
  */
 
 /**
- * @brief  This example deploys the open-loop control of a MMC arm integrating a Capacitor Voltage Balancing algorithm using duty cycle ramp to reduce oscillations on generated arm voltage. 
+ * @brief  This example shows how to a MMC arm works by blinking the onboard LED of the Spin board of the arm modules.
  *         This research was funded in whole by the French National Research Agency (ANR) under the project CARROTS "ANR-24-CE05-0920-01".
  *
  * @author Ayoub Farah Hassan <ayoub.farah-hassan@laas.fr>
@@ -72,14 +72,13 @@ constexpr uint8_t MMC_SM_FIRST = MMC_SM1;
 constexpr uint8_t MMC_SM_LAST = MMC_SM10;
 
 /* -------------- GENERAL MMC DEFINITIONS -------------------- */
-/* --------------- To be changed by user --------------------- */
 
 static const float f0 = 50.F; //[Hz] Output frequency used to generate the sinusoidal reference for open-loop control
 static const uint8_t total_number_of_modules_arm = 5; //[-] Number of modules per arm
-constexpr float32_t Vcap_expected = 80.0F; //[V] Capacitor DC voltage expected during the test (used to set voltage measurement scale for 12 bits)
-constexpr float32_t i_expected = 10.0F; //[A] Expected current amplitude during test (used to set current measurement scale for 12 bits)
-constexpr float32_t overvoltage_tolerance = 80.0F; //[V] Set overvoltage tolerance (default max TWIST voltage)
-constexpr float32_t overcurrent_tolerance = 8.0F; //[A] Set overcurrent tolerance (default max TWIST current)
+constexpr float32_t Vcap_expected = 80.0F; //[V] Capacitor DC voltage expected during the test
+constexpr float32_t i_expected = 10.0F; //[A] Expected current amplitude during test
+constexpr float32_t overvoltage_tolerance = 80.0F; //[V] Set overvoltage tolerance
+constexpr float32_t overcurrent_tolerance = 8.0F; //[A] Set overcurrent tolerance
 
 /* -------------- BOARD IDENTIFICATION ----------------------- */
 
@@ -95,7 +94,19 @@ constexpr uint32_t UID_MMC_SM8_BOARD = 0x1111BBB1;
 constexpr uint32_t UID_MMC_SM9_BOARD = 0x1111CCC2;
 constexpr uint32_t UID_MMC_SM10_BOARD = 0x1111CCC3;
 
-/* --------- BOARD IDENTIFICATION functions ------------------ */
+
+// constexpr uint32_t UID_MMC_LEAD_BOARD = 0x002B002A;
+// constexpr uint32_t UID_MMC_SM1_BOARD = 0x00330054;
+// constexpr uint32_t UID_MMC_SM2_BOARD = 0x0033004B;
+// constexpr uint32_t UID_MMC_SM3_BOARD = 0x00330049;
+// constexpr uint32_t UID_MMC_SM4_BOARD = 0x0033004C;
+// constexpr uint32_t UID_MMC_SM5_BOARD = 0x0031001B;
+// constexpr uint32_t UID_MMC_SM6_BOARD = 0x11118888;
+// constexpr uint32_t UID_MMC_SM7_BOARD = 0x11119999;
+// constexpr uint32_t UID_MMC_SM8_BOARD = 0x1111AAA0;
+// constexpr uint32_t UID_MMC_SM9_BOARD = 0x1111BBB1;
+// constexpr uint32_t UID_MMC_SM10_BOARD = 0x1111CCC2;
+
 static uint32_t read_board_uid()
 {
     static volatile uint32_t *const uid0 =
@@ -140,12 +151,6 @@ constexpr float32_t Cap_voltage_SCALE = Vcap_expected*2; //[V] Scale to transfor
 constexpr float32_t Arm_current_SCALE = i_expected*2; //[A] Scale to transform current measurements sent to 1 byte (256 values)
 constexpr float32_t Arm_current_OFFSET = i_expected; //[A] Offset to transform current measurements sent to 1 byte, used to allow positive and negative values with expected amplitude
 
-/**
- * @brief Encode an capacitor voltage into the 12-bit transport format.
- *
- * @param current Physical capacitor voltage in volts.
- * @return 12-bit encoded voltage suitable for MMC frames.
- */
 static inline uint16_t mmc_encode_voltage(float32_t voltage)
 {
     int32_t raw = static_cast<int32_t>((voltage * 4095.0F) / Cap_voltage_SCALE);
@@ -213,12 +218,10 @@ void setup_routine();
 
 /* --------------LOOP FUNCTIONS DECLARATION-------------------- */
 
-/* Code to be executed in the background task - only sets up boards LEDs */
+/* Code to be executed in the background task */
 void loop_background_task();
-/* Code to be executed in real time in the critical task - executes all LEAD and MODULES control logics */
+/* Code to be executed in real time in the critical task */
 void loop_critical_task();
-/* Code to be executed in the communication task - serves to send command to board via PC using USB-C cable */
-void loop_communication_task();
 
 /* --------------USER VARIABLES DECLARATIONS------------------- */
 
@@ -482,20 +485,20 @@ int8_t CommTask_num;
 
 static bool master = false;
 
-/* --------------- LIST OF POSSIBLE BOARD MODES ------------------*/
-enum serial_interface_menu_mode
+enum serial_interface_menu_mode // LIST OF POSSIBLE MODES FOR THE OWNTECH CONVERTER
 {
-    IDLEMODE = 0, // Related to blocked state
-    POWERMODE = 1, // Related to connected/disconnected state
+    IDLEMODE = 0,
+    POWERMODE = 1,
 };
 
 serial_interface_menu_mode mode = IDLEMODE;
 
+void loop_communication_task(); // Code to be executed in the communication task
+
 /* --------------- Firmware CVB variables ------------------*/
 
 /* [us] period of the control task (=critical task) */
-static constexpr uint32_t control_task_period = 100; // µs
-static float32_t Ts = control_task_period * 1e-6F; // s
+static constexpr uint32_t control_task_period = 100; // 100 µs
 /* [bool] state of the PWM (ctrl task) */
 static bool pwm_enable = false;
 
@@ -526,17 +529,16 @@ static uint32_t scope_period = 1; // scope acquire data every t = scope_period *
 
 /* CVB variables */
 
-static uint8_t index_list[10] = {0,1,2,3,4,5,6,7,8,9}; // Modules general indexes array
-static float32_t number_of_connected_submodules_upper_arm; // Stores number of modules connected in the upper arm (NLM output)
-static float32_t number_of_connected_submodules_lower_arm; // Stores number of modules connected in the lower arm (NLM output)
-static float32_t number_of_connected_submodules_upper_arm_past = 0.0F; // Stores number of modules connected in the upper arm in t-1
-static float32_t number_of_connected_submodules_lower_arm_past = 0.0F; // Stores number of modules connected in the upper arm in t-1
+static uint8_t index_list[10] = {0,1,2,3,4,5,6,7,8,9}; // Upper arm modules indexes to be sorted with the capacitor voltage vector
+static float32_t number_of_connected_submodules_upper_arm;
+static float32_t number_of_connected_submodules_lower_arm;
+static float32_t number_of_connected_submodules_upper_arm_past = 0.0F;
 static float32_t modules_capacitor_voltages_upper_arm[total_number_of_modules_arm]; // Upper arm modules capacitor voltages artificially generated, to be substituted by measured current when implementing MMC
 static uint8_t modules_indexes_upper_arm[total_number_of_modules_arm]; // Upper arm modules indexes to be sorted with the capacitor voltage vector
 static float32_t modules_capacitor_voltages_lower_arm[total_number_of_modules_arm]; // Lower arm modules capacitor voltages artificially generated, to be substituted by measured current when implementing MMC
 static uint8_t modules_indexes_lower_arm[total_number_of_modules_arm]; // Lower arm modules indexes to be sorted with the capacitor voltage vector
-static float32_t i_upper_arm= 1.0F; // Upper arm current - will be updated with physical current measure during test execution
-static float32_t i_lower_arm= -1.0F; // Lower arm current - will be updated with physical current measure during test execution
+static float32_t i_upper_arm= 1.0F; // Upper arm current, to be substituted by measured current when implementing MMC
+static float32_t i_lower_arm= -1.0F; // Lower arm current, to be substituted by measured current when implementing MMC
 
 /* Gate logic */
 uint8_t g_u[total_number_of_modules_arm]; // Gate signals to send to the upper modules
@@ -549,14 +551,13 @@ static float32_t g_u_5;
 static float32_t g_l_1;
 static float32_t g_l_2;
 static float32_t g_l_3;
-static float32_t g_l_4;
-static float32_t g_l_5;
 
 /* NLM */
 static float32_t m = 1;
 static float32_t a = 1;
 static float32_t angle;
 static const float w0 = 2 * PI * f0;
+static float32_t Ts = control_task_period * 1e-6F;
 static float32_t modulation_signal_upper;
 static float32_t modulation_signal_lower;
 
@@ -641,7 +642,6 @@ bool a_trigger()
     return enable_acq;
 }
 
-/* Records scope data */
 void dump_scope_datas(ScopeMimicry &scope)
 {
     uint8_t *buffer = scope.get_buffer();
@@ -764,10 +764,12 @@ void reception_function(void)
  * This is the setup routine.
  * It is used to call functions that will initialize your spin, power shields
  * and tasks.
+ *
+ * In this example, we spawn a background task and a critical task
  */
 void setup_routine()
 {
-    /* Informs the module ID in the terminal */
+
     const uint32_t board_uid = read_board_uid();
     printk("Board UID: 0x%08" PRIX32 "\n", board_uid);
     master = (module_ID == MMC_LEAD);
@@ -779,15 +781,19 @@ void setup_routine()
     uint32_t background_task_number =
         task.createBackground(loop_background_task);
 
+    /* Uncomment following line if you use the critical task */
     task.createCritical(loop_critical_task, 100);
 
     shield.sensors.enableDefaultTwistSensors();
 
-    /* Disconnect electrolytical capacitors from low-side */
+    // shield.sensors.setConversionParametersLinear(I1_LOW,0.004634793,-9.873788182); //Calibration with different duty cycle values in Buck mode
+    // shield.sensors.setConversionParametersLinear(I1_LOW,0.004373188,-9.021091389); //Calibration with duty cycle = 1 by changing Vhigh in Buck mode
+    // shield.sensors.setConversionParametersLinear(I1_LOW,0.004533395,-9.733253698); //Calibration programmed as module with connected state
+
     shield.power.disconnectCapacitor(LEG1);
     shield.power.disconnectCapacitor(LEG2);
 
-    /* Enable switch control with max and min duty cycle of 1 and 0 */
+    /* Enable switch control with max and min duty cycle*/
     shield.power.setDutyCycleMax(ALL,1.0);
     shield.power.setDutyCycleMin(ALL,0.0);
 
@@ -804,10 +810,7 @@ void setup_routine()
                                               /* Configure scope channels, what measurements do you want to acquire? */
     if (master == true)
     {
-        /* Defines lead's clock as reference for communication synchorinization */
         communication.sync.initMaster();
-
-        /* Configures scopemimicry measured variables */
         scope.connectChannel(modulation_signal_upper, "m_u");
         scope.connectChannel(number_of_connected_submodules_upper_arm, "N_u");
         scope.connectChannel(g_u_1, "g_u_1");
@@ -826,24 +829,16 @@ void setup_routine()
         scope.set_delay(0.0F);
         scope.start();
 
-        /* Copies from general indexes list the module indexes that compose upper and lower arms, respectively */
         memcpy(modules_indexes_upper_arm, index_list, total_number_of_modules_arm);
         memcpy(modules_indexes_lower_arm, index_list, total_number_of_modules_arm);
     }
     else{
-        /* Defines module as follower for communication synchorinization */
         communication.sync.initSlave();
     }
 }
 
 /* --------------LOOP FUNCTIONS-------------------------------- */
-/**
- * This is the communication task.
- * It is used to send to the board via the computer the desired mode
- * IDLE (i) = block all modules or POWER (p) = operate MMC arm with CVB.
- * 
- * It also sends data acquisition start command (a) and scope data retrieve commands (r).
- */
+
 void loop_communication_task()
 {
     received_serial_char = console_getchar();
@@ -884,8 +879,8 @@ void loop_communication_task()
 /**
  * This is the code loop of the background task
  * It runs perpetually. Here a `suspendBackgroundMs` is used to pause during
- * 2000ms between each LED toggles.
- * Hence we expect the LED to blink each 2 seconds.
+ * 1000ms between each LED toggles.
+ * Hence we expect the LED to blink each second.
  */
 void loop_background_task()
 {
@@ -908,22 +903,13 @@ void loop_background_task()
 
     task.suspendBackgroundMs(2000);
 }
-
-/**
- * @brief Capacitor Voltage Balancing (CVB) algorithm - Determine which modules connect/disconnect on upper arm.
- *
- * @param ...
- * @return Gate signals for upper arm.
- */
+/* Capacitor Voltage Balancing (CVB) algorithm implementation */
 void sorting_upper_arm()
 {
-    /* Reset upper modules indexes every time the function is used */
     memcpy(modules_indexes_upper_arm, index_list, total_number_of_modules_arm);
     
-    /* Sorts upper modules indexes according to capacitor voltage in ascending order (lower to higher voltage) */
     uint8_t counter_loops_sorting = 0;
-    while(counter_loops_sorting < total_number_of_modules_arm + 1){ 
-        /* Bubble sorting technique - simple */  
+    while(counter_loops_sorting < total_number_of_modules_arm + 1){ // Sorts modules indexes according to capacitor voltage
             for(uint8_t counter = 0; counter < total_number_of_modules_arm-1; counter++)
             {
                 if(modules_capacitor_voltages_upper_arm[counter] > modules_capacitor_voltages_upper_arm[counter + 1])
@@ -940,12 +926,8 @@ void sorting_upper_arm()
             counter_loops_sorting++;
         }
     
-    /* Choses the modules to connect to the upper arm according to capacitor voltages and arm current */
-    for(uint8_t counter = 0; counter < total_number_of_modules_arm; counter++) 
+    for(uint8_t counter = 0; counter < total_number_of_modules_arm; counter++) // Choses the modules to connect according to sorted indexes
         {
-            /* Positive arm current */
-            // Connect modules with smallest capacitor voltages
-            // Disconnect modules with highest capacitor voltages
             if(i_upper_arm>=0)
             {
                 uint8_t index_smallest_voltage_capacitor_upper_arm = modules_indexes_upper_arm[counter];
@@ -957,10 +939,6 @@ void sorting_upper_arm()
                     g_u[index_smallest_voltage_capacitor_upper_arm] = 0;
                 }
             }
-
-            /* Negative arm current */
-            // Connect modules with highest capacitor voltages
-            // Disconnect modules with smallest capacitor voltages
             if(i_upper_arm<0)
             {
                 uint8_t higher_index = total_number_of_modules_arm-1-counter;
@@ -978,12 +956,15 @@ void sorting_upper_arm()
 }
 
 /**
- * This is the code loop of the critical task
- * It is executed every 100 micro-seconds defined in the setup_software
- * function.
+ * Uncomment lines in setup_routine() to use critical task.
  *
- * In the critical task, we implement the MMC control algorithms that will
- * run in Real Time.
+ * This is the code loop of the critical task
+ * It is executed every 500 micro-seconds defined in the setup_software
+ * function. You can use it to execute an ultra-fast code with
+ * the highest priority which cannot be interrupted by the background tasks.
+ *
+ * In the critical task, you can implement your control algorithm that will
+ * run in Real Time and control your power flow.
  */
 void loop_critical_task()
 {
@@ -991,48 +972,39 @@ void loop_critical_task()
 
     if (mode == POWERMODE)
     {
-        
-        if (module_ID == MMC_LEAD) //CONTROL INSIDE LEAD - Modulation NLM + CVB algorithm execution
+        /* The lead sends commands to the followers */
+        if (module_ID == MMC_LEAD)
         {
-            /* Modulation signal generation in open-loop */
+            /* Connection sequence from NLM */
             angle += w0 * Ts;
             angle = ot_modulo_2pi(angle);
             m = 1;
             modulation_signal_upper = (a + m * ot_sin(angle)) / (2.0);
             modulation_signal_lower = (a - m * ot_sin(angle)) / (2.0);
 
-            /* Number of modules N_on to be connected on the arm according to modulation signal by Nearest Level Modulation (NLM)  */
-            number_of_connected_submodules_upper_arm = round(total_number_of_modules_arm*modulation_signal_upper);
-            number_of_connected_submodules_lower_arm = round(total_number_of_modules_arm*modulation_signal_lower);
+            number_of_connected_submodules_upper_arm = round(total_number_of_modules_arm*modulation_signal_upper); // recuperate for scope
+            number_of_connected_submodules_lower_arm = round(total_number_of_modules_arm*modulation_signal_lower); // recuperate for scope
 
-            /* Updating arm current measurements and filtering */
             i_upper_arm = MMC_arm_current[0];
             i_lowfilter_value = i_low_filter.calculateWithReturn(i_upper_arm); // filtered current value
             i_upper_arm = i_lowfilter_value;
-
-            /* Modules choice with Capacitor Voltage Balancing (CVB) sorting */
-            // Executed only when N_on changes
+            /* Gate assignment with CVB */
             if (number_of_connected_submodules_upper_arm != number_of_connected_submodules_upper_arm_past){
                 
-                /* Updating capacitor voltages measurements */
                 memcpy(modules_capacitor_voltages_upper_arm, MMC_capacitor_voltage, total_number_of_modules_arm * sizeof(float32_t));
 
-                /* Executes the CVB algorithm, chosing which modules to connect */
-                sorting_upper_arm();
+                sorting_upper_arm(); // Executes the CVB algorithm, chosing which modules to connect
                 number_of_connected_submodules_upper_arm_past = number_of_connected_submodules_upper_arm;
             }
 
             dataTX_mmc.sm_insertion.raw = 0U;
 
-            /* Modules state assignment according to CVB output */
+
             for (uint8_t counter = 0; counter < total_number_of_modules_arm; counter++) {
-                // mmc_frame_set_sm_inserted(trame_communication, module function (SM1,SM2,SM3,...), g_u associated to the module (SM1,SM2,SM3,...))
-                // g_u[counter]: true = connected, false = disconnected
                 mmc_frame_set_sm_inserted(dataTX_mmc, MMC_SM1 + counter, g_u[counter] != 0U);
             }
 
-            /* Fills all other communication trame spaces */
-            dataTX_mmc.status.raw = 0U; // Reset status code
+            dataTX_mmc.status.raw = 0U;
 
             mmc_frame_set_status_code(dataTX_mmc, POWER);
             mmc_frame_set_upper_arm_flag(dataTX_mmc, mmc_is_upper_arm_module(module_ID));
@@ -1041,16 +1013,15 @@ void loop_critical_task()
             mmc_frame_set_current_raw(dataTX_mmc, mmc_encode_current(Arm_current));
             memcpy(buffer_tx, &dataTX_mmc, sizeof(dataTX_mmc));
 
-            /* LEAD communicates to MODULES */
             communication.rs485.startTransmission();
 
-            /* Scope data acquisition */
             g_u_1 = (float)g_u[0];  // recuperate for scope acquisition
             g_u_2 = (float)g_u[1];  // recuperate for scope acquisition
             g_u_3 = (float)g_u[2];  // recuperate for scope acquisition
             g_u_4 = (float)g_u[3];  // recuperate for scope acquisition
             g_u_5 = (float)g_u[4];  // recuperate for scope acquisition
 
+            /* Scope data acquisition */
             if (scope_timer == scope_period)
             {
                 scope.acquire();
@@ -1059,9 +1030,9 @@ void loop_critical_task()
             scope_timer++;
             critical_task_timer++;
         }
-        else //CONTROL INSIDE MODULE - own switching only
+        else
         {
-            /* Verifies if module received command changed */
+            /* Verifies if command to be ON or OFF changed */
             if (module_comand != module_command_past)
             {
                 change_state_command = true; // Set the flag to change the state
@@ -1089,7 +1060,7 @@ void loop_critical_task()
     }
     else if (mode == IDLEMODE)
     {
-        /* Made  such that the LEAD send IDLE flag only once to all modules */
+        /* Made to send IDLE flag only once */
         if (!send_idle && module_ID == MMC_LEAD)
         {
             dataTX_mmc.sm_insertion.raw = 0U;
