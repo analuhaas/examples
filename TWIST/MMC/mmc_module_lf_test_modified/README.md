@@ -66,8 +66,8 @@ First, we need to load the Single module test code from the OwnTech example repo
 5.	Recommended for MMC use: Configure the board to feed the 6 V auxiliary input externally with feeder completely disconnected from the electrical circuit of the board.
    In the TWIST board, it is possible to feed the auxiliary circuit of the board by 3 different ways:
   	* Using the feeder to provide the 6 V auxiliary input
-   * Feeding the 6 V auxiliary input externally
-   * Feeding the 6 V auxiliary input externally with feeder completely disconnected from the electrical circuit of the board.
+  	* Feeding the 6 V auxiliary input externally
+  	* Feeding the 6 V auxiliary input externally with feeder completely disconnected from the electrical circuit of the board.
 
 The last one is preferable to MMC use cause the board feeder is not yet adapted to MMC charging phase. To do that:
 
@@ -80,10 +80,10 @@ The last one is preferable to MMC use cause the board feeder is not yet adapted 
 <img width="788" height="354" alt="image" src="https://github.com/user-attachments/assets/4ea8605a-20df-4adf-a9dc-0c007057e639" />
 
 6.	Recommended for MMC use: Disconnect the electrolytical capacitor of both Low1 and Low2 terminals adding the following code lines in the setup_routine() function
-
+```
  shield.power.disconnectCapacitor(LEG1);
  shield.power.disconnectCapacitor(LEG2);
-
+```
  In the TWIST board electrical circuit, we see that Clow1 and Clow2 low-side capacitors are divided in a electrolytical part that is removable by Q5 and Q6 and a ceramic part. It is preferable that these capacitors are disconnected since they are not traditionally present in a Half-Bridge module circuit.
 
  <img width="656" height="319" alt="image" src="https://github.com/user-attachments/assets/8ab85781-59dc-4b52-b1c4-91194d41f7ef" />
