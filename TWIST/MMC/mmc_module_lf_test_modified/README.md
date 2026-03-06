@@ -105,11 +105,11 @@ ii.	Module current.
 
 iii.	DC power supply voltage.
 
-  	b.	Use a 500 ms/div configuration with sampling rate to have 5 µs sampling.
+b.	Use a 500 ms/div configuration with sampling rate to have 5 µs sampling.
    
  <img width="241" height="464" alt="image" src="https://github.com/user-attachments/assets/5cf1f3be-8028-41da-925b-4e4f1639ef43" />
  
-  c.	Configure it to trigger when the power supply voltage rises up to 2 V.
+c.	Configure it to trigger when the power supply voltage rises up to 2 V.
   
  <img width="368" height="542" alt="image" src="https://github.com/user-attachments/assets/0f122b93-632a-467f-9edb-b42d6651bf6e" />
 
