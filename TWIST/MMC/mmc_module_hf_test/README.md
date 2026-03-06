@@ -118,8 +118,8 @@ c.	Configure it to trigger when the power supply voltage rises up to 2 V.
 11.	Build <img width="25" height="27" alt="image" src="https://github.com/user-attachments/assets/028ecb2b-5d25-4383-8ece-c51cb804c64f" /> and Upload <img width="34" height="25" alt="image" src="https://github.com/user-attachments/assets/5af20606-e19c-46fd-870b-326c0d855a70" /> the code main.cpp into the board.
 12.	Make sure the External Auxiliary DC Power Supply is configured to deliver 6 V with limiting current above 0.5 A. TURN ON the External Auxiliary DC Power Supply output.
 The boards starts in IDLE mode (equal to module blocked state).
-13. TURN ON the main power supply output. This will start the sequence first part.
-14. After you verify the first sequence part is finished (after 0.5 s), TURN OFF the main power supply output. This will start the sequence second part.
+13.	TURN ON the main power supply output. This will start the sequence first part.
+14.	Verify if the DC power supply was turned off around 0.45 s as expected. After you verify both sequence parts were executed, the test is concluded.
 15.	TURN OFF the External Auxiliary DC Power Supply output.
 16.	Save your oscilloscope data.
 
