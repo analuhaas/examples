@@ -138,6 +138,3 @@ The use of external 6 V auxiliary input changes module discharge behavior while 
 
 <img width="945" height="432" alt="image" src="https://github.com/user-attachments/assets/417b057a-e1a1-41cd-87e9-9574e940bc9f" />
 
-If you zoom between 0.35 s and 0.38 s where the module commutes with $u_{dc}$ ON:
-
-<img width="945" height="432" alt="image" src="https://github.com/user-attachments/assets/6266f19a-f249-4fea-8d58-2a6d034e123e" />
