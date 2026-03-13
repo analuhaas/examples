@@ -538,6 +538,8 @@ static float32_t modules_capacitor_voltages_lower_arm[total_number_of_modules_ar
 static uint8_t modules_indexes_lower_arm[total_number_of_modules_arm]; // Lower arm modules indexes to be sorted with the capacitor voltage vector
 static float32_t i_upper_arm= 1.0F;  // Upper arm current - will be updated with physical current measure during test execution
 static float32_t i_lower_arm= -1.0F; // Lower arm current - will be updated with physical current measure during test execution
+static uint8_t gate_change = 0;
+static float32_t delta_N = 0.0;
 
 /* Gate logic */
 uint8_t g_u[total_number_of_modules_arm]; // Gate signals to send to the upper modules
@@ -887,37 +889,75 @@ void sorting_upper_arm()
             counter_loops_sorting++;
         }
     /* Choses the modules to connect to the upper arm according to capacitor voltages and arm current */
-    for(uint8_t counter = 0; counter < total_number_of_modules_arm; counter++) 
-        {
-            /* Positive arm current */
-            // Connect modules with smallest capacitor voltages
-            // Disconnect modules with highest capacitor voltages
-            if(i_upper_arm>=0)
+    for(uint8_t counter = 0; counter < total_number_of_modules_arm; counter++)
+        {            
+            if(delta_N >= 0) // Connect delta_N modules
             {
-                uint8_t index_smallest_voltage_capacitor_upper_arm = modules_indexes_upper_arm[counter];
-                if(counter < number_of_connected_submodules_upper_arm)
+                /* Positive arm current */
+                // Connect modules with smallest capacitor voltages
+                if(i_upper_arm>=0)
                 {
-                    g_u[index_smallest_voltage_capacitor_upper_arm] = 1;
+                    uint8_t index_smallest_voltage_capacitor_upper_arm = modules_indexes_upper_arm[counter];
+                    if(gate_change < delta_N && g_u[index_smallest_voltage_capacitor_upper_arm] == 0)
+                    {
+                        g_u[index_smallest_voltage_capacitor_upper_arm] = 1;
+                        gate_change++;
+                    }
+                    else{
+                        // g_u[index_smallest_voltage_capacitor_upper_arm] = 0;
+                    }
                 }
-                else{
-                    g_u[index_smallest_voltage_capacitor_upper_arm] = 0;
+
+                /* Negative arm current */
+                // Connect modules with highest capacitor voltages
+                if(i_upper_arm<0)
+                {
+                    uint8_t higher_index = total_number_of_modules_arm-1-counter;
+                    uint8_t index_highest_voltage_capacitor_upper_arm = modules_indexes_upper_arm[higher_index];
+                    if(gate_change < delta_N && g_u[index_highest_voltage_capacitor_upper_arm] == 0)
+                    {
+                        g_u[index_highest_voltage_capacitor_upper_arm] = 1;
+                        gate_change++;
+                    }
+                    else{
+                        // g_u[index_highest_voltage_capacitor_upper_arm] = 0;
+                    }
+                }   
+            }
+            else{ // Disconnect delta_N modules
+
+                /* Positive arm current */
+                // Disconnect modules with highest capacitor voltages
+                if(i_upper_arm>=0)
+                {
+                    
+                    uint8_t higher_index = total_number_of_modules_arm-1-counter;
+                    uint8_t index_highest_voltage_capacitor_upper_arm = modules_indexes_upper_arm[higher_index];
+                    if(gate_change < -delta_N && g_u[index_highest_voltage_capacitor_upper_arm] == 1)
+                    {
+                        g_u[index_highest_voltage_capacitor_upper_arm] = 0;
+                        gate_change++;
+                    }
+                    else{
+                        // g_u[index_highest_voltage_capacitor_upper_arm] = 1;
+                    }
+                }
+
+                /* Negative arm current */
+                // Disconnect modules with smallest capacitor voltages
+                if(i_upper_arm<0)
+                {
+                    uint8_t index_smallest_voltage_capacitor_upper_arm = modules_indexes_upper_arm[counter];
+                    if(gate_change < -delta_N && g_u[index_smallest_voltage_capacitor_upper_arm] == 1)
+                    {
+                        g_u[index_smallest_voltage_capacitor_upper_arm] = 0;
+                        gate_change++;
+                    }
+                    else{
+                        // g_u[index_smallest_voltage_capacitor_upper_arm] = 1;
+                    }
                 }
             }
-            /* Negative arm current */
-            // Connect modules with highest capacitor voltages
-            // Disconnect modules with smallest capacitor voltages
-            if(i_upper_arm<0)
-            {
-                uint8_t higher_index = total_number_of_modules_arm-1-counter;
-                uint8_t index_highest_voltage_capacitor_upper_arm = modules_indexes_upper_arm[higher_index];
-                if(counter < number_of_connected_submodules_upper_arm)
-                {
-                    g_u[index_highest_voltage_capacitor_upper_arm] = 1;
-                }
-                else{
-                    g_u[index_highest_voltage_capacitor_upper_arm] = 0;
-                }
-            }   
         }
 
 }
@@ -957,6 +997,10 @@ void loop_critical_task()
             /* Modules choice with Capacitor Voltage Balancing (CVB) sorting */
             // Executed only when N_on changes
             if (number_of_connected_submodules_upper_arm != number_of_connected_submodules_upper_arm_past){
+                
+                /* Computes Delta N = N_on - N_on_past */
+                delta_N = number_of_connected_submodules_upper_arm - number_of_connected_submodules_upper_arm_past;
+                gate_change = 0;
                 
                 /* Updating capacitor voltages measurements */
                 memcpy(modules_capacitor_voltages_upper_arm, MMC_capacitor_voltage, total_number_of_modules_arm * sizeof(float32_t));
