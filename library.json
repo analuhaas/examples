@@ -407,11 +407,33 @@
         ]
     },
     {
+        "name": "arm_with_cvb_modified",
+        "title": "MMC arm with CVB modified",
+        "description": "Build a MMC arm integrating a Capacitor Voltage Balancing algorithm modified in Open-loop control using NLM modulation.",
+        "group": "Examples TWIST",
+        "base": "TWIST/MMC/arm_with_cvb_modified",
+        "files": [
+            "main.cpp",
+            "README.md"
+        ]
+    },
+    {
         "name": "arm_with_cvb_protection",
         "title": "MMC arm with CVB (protection)",
         "description": "Build a MMC arm integrating a Capacitor Voltage Balancing algorithm in Open-loop control using NLM modulation.",
         "group": "Examples TWIST",
         "base": "TWIST/MMC/arm_with_cvb_protection",
+        "files": [
+            "main.cpp",
+            "README.md"
+        ]
+    },
+    {
+        "name": "arm_with_cvb_modified_protection",
+        "title": "MMC arm with CVB modified (protection)",
+        "description": "Build a MMC arm integrating a Capacitor Voltage Balancing algorithm modified in Open-loop control using NLM modulation.",
+        "group": "Examples TWIST",
+        "base": "TWIST/MMC/arm_with_cvb_modified_protection",
         "files": [
             "main.cpp",
             "README.md"
@@ -429,11 +451,33 @@
         ]
     },
     {
+        "name": "arm_with_cvb_modified_095dutycycle",
+        "title": "MMC arm with CVB modified(0.95 duty cycle)",
+        "description": "Build a MMC arm integrating a Capacitor Voltage Balancing algorithm modified in Open-loop control using NLM modulation.",
+        "group": "Examples TWIST",
+        "base": "TWIST/MMC/arm_with_cvb_modified_095dutycycle",
+        "files": [
+            "main.cpp",
+            "README.md"
+        ]
+    },
+    {
         "name": "arm_with_cvb_dutycycleramp",
         "title": "MMC arm with CVB (duty cycle ramp)",
         "description": "Build a MMC arm integrating a Capacitor Voltage Balancing algorithm in Open-loop control using NLM modulation.",
         "group": "Examples TWIST",
         "base": "TWIST/MMC/arm_with_cvb_dutycycleramp",
+        "files": [
+            "main.cpp",
+            "README.md"
+        ]
+    },
+    {
+        "name": "arm_with_cvb_modified_dutycycleramp",
+        "title": "MMC arm with CVB modified (duty cycle ramp)",
+        "description": "Build a MMC arm integrating a Capacitor Voltage Balancing algorithm modified in Open-loop control using NLM modulation.",
+        "group": "Examples TWIST",
+        "base": "TWIST/MMC/arm_with_cvb_modified_dutycycleramp",
         "files": [
             "main.cpp",
             "README.md"
