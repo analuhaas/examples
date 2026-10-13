@@ -363,28 +363,6 @@
         ]
     },
     {
-        "name": "blinky_mmc_arm",
-        "title": "Blinky MMC arm",
-        "description": "Unpowered MMC arm by blinking the onboard LED of the Spin board of the arm modules.",
-        "group": "Examples TWIST",
-        "base": "TWIST/MMC/blinky_mmc_arm",
-        "files": [
-            "main.cpp",
-            "README.md"
-        ]
-    },
-    {
-        "name": "cvb_control_mmc",
-        "title": "CVB control",
-        "description": "Open-loop control of a MMC arm integrating a Capacitor Voltage Balancing algorithm.",
-        "group": "Examples TWIST",
-        "base": "TWIST/MMC/cvb_control_mmc",
-        "files": [
-            "main.cpp",
-            "README.md"
-        ]
-    },
-    {
         "name": "basic_communication",
         "title": "Basic Communication",
         "description": "Basic communication example to verify if RS-485, CAN, Analog and Sync communications are well established.",
@@ -396,145 +374,184 @@
         ]
     },
     {
-        "name": "arm_with_cvb",
-        "title": "MMC arm with CVB",
-        "description": "Build a MMC arm integrating a Capacitor Voltage Balancing algorithm in Open-loop control using NLM modulation.",
-        "group": "Examples TWIST",
-        "base": "TWIST/MMC/arm_with_cvb",
+        "name": "mmc_module_calibration",
+        "title": "Manual module calibration",
+        "description": "Manual calibration of the TWIST voltage and current sensors of a MMC module.",
+        "group": "Examples MMC",
+        "base": "MMC/Educational_prototype/module_calibration",
         "files": [
             "main.cpp",
+            "app.ini",
             "README.md"
         ]
     },
     {
-        "name": "arm_with_cvb_modified",
-        "title": "MMC arm with CVB modified",
-        "description": "Build a MMC arm integrating a Capacitor Voltage Balancing algorithm modified in Open-loop control using NLM modulation.",
-        "group": "Examples TWIST",
-        "base": "TWIST/MMC/arm_with_cvb_modified",
+        "name": "mmc_module_calibration_automated",
+        "title": "Automated Module Calibration",
+        "description": "Automated calibration of the TWIST sensors of a MMC module using CAN/ThingSet and a MATLAB supervisor.",
+        "group": "Examples MMC",
+        "base": "MMC/Educational_prototype/module_calibration_automated",
         "files": [
             "main.cpp",
+            "app.ini",
+            "app.conf",
+            "app.overlay",
+            "user_data_objects.h",
             "README.md"
         ]
     },
     {
-        "name": "arm_with_cvb_protection",
-        "title": "MMC arm with CVB (protection)",
-        "description": "Build a MMC arm integrating a Capacitor Voltage Balancing algorithm in Open-loop control using NLM modulation.",
-        "group": "Examples TWIST",
-        "base": "TWIST/MMC/arm_with_cvb_protection",
+        "name": "mmc_module_test_sequence_lf",
+        "title": "MMC module test sequence – LF",
+        "description": "Low-frequency test sequence of a single MMC module using a TWIST board.",
+        "group": "Examples MMC",
+        "base": "MMC/Educational_prototype/module_test_sequences/LF_sequence",
         "files": [
             "main.cpp",
+            "app.ini"
+        ]
+    },
+    {
+        "name": "mmc_module_test_sequence_hf",
+        "title": "MMC module test sequence – HF",
+        "description": "High-frequency test sequence of a single MMC module using a TWIST board.",
+        "group": "Examples MMC",
+        "base": "MMC/Educational_prototype/module_test_sequences/HF_sequence",
+        "files": [
+            "main.cpp",
+            "app.ini"
+        ]
+    },
+    {
+        "name": "mmc_stack_no_cvb",
+        "title": "MMC stack without CVB",
+        "description": "MMC stack of 5 modules in open-loop control using NLM modulation, without Capacitor Voltage Balancing.",
+        "group": "Examples MMC",
+        "base": "MMC/Educational_prototype/stack_no_CVB",
+        "files": [
+            "main.cpp",
+            "app.ini",
             "README.md"
         ]
     },
     {
-        "name": "arm_with_cvb_modified_protection",
-        "title": "MMC arm with CVB modified (protection)",
-        "description": "Build a MMC arm integrating a Capacitor Voltage Balancing algorithm modified in Open-loop control using NLM modulation.",
-        "group": "Examples TWIST",
-        "base": "TWIST/MMC/arm_with_cvb_modified_protection",
+        "name": "mmc_stack_with_cvb",
+        "title": "MMC stack with CVB",
+        "description": "MMC stack of 5 modules in open-loop control using NLM modulation with Capacitor Voltage Balancing.",
+        "group": "Examples MMC",
+        "base": "MMC/Educational_prototype/stack_with_cvb",
         "files": [
             "main.cpp",
+            "app.ini",
             "README.md"
         ]
     },
     {
-        "name": "arm_with_cvb_095dutycycle",
-        "title": "MMC arm with CVB (0.95 duty cycle)",
-        "description": "Build a MMC arm integrating a Capacitor Voltage Balancing algorithm in Open-loop control using NLM modulation.",
-        "group": "Examples TWIST",
-        "base": "TWIST/MMC/arm_with_cvb_095dutycycle",
+        "name": "mmc_phase_nlm_with_cvb",
+        "title": "MMC phase",
+        "description": "MMC phase of 10 modules (two stacks) in open-loop control using NLM modulation with Capacitor Voltage Balancing.",
+        "group": "Examples MMC",
+        "base": "MMC/Educational_prototype/phase_NLM_with_cvb",
         "files": [
             "main.cpp",
+            "app.ini",
             "README.md"
         ]
     },
     {
-        "name": "arm_with_cvb_modified_095dutycycle",
-        "title": "MMC arm with CVB modified(0.95 duty cycle)",
-        "description": "Build a MMC arm integrating a Capacitor Voltage Balancing algorithm modified in Open-loop control using NLM modulation.",
-        "group": "Examples TWIST",
-        "base": "TWIST/MMC/arm_with_cvb_modified_095dutycycle",
+        "name": "mmc_cvb_control_logic",
+        "title": "CVB control",
+        "description": "NLM, sorting and Capacitor Voltage Balancing logic tested without power.",
+        "group": "Examples MMC",
+        "base": "MMC/Control_logic",
         "files": [
             "main.cpp",
+            "app.ini",
+            "plot_CVB_scope_data.py",
             "README.md"
         ]
     },
     {
-        "name": "arm_with_cvb_dutycycleramp",
-        "title": "MMC arm with CVB (duty cycle ramp)",
-        "description": "Build a MMC arm integrating a Capacitor Voltage Balancing algorithm in Open-loop control using NLM modulation.",
-        "group": "Examples TWIST",
-        "base": "TWIST/MMC/arm_with_cvb_dutycycleramp",
+        "name": "mmc_blinky_stack",
+        "title": "Blinky MMC arm",
+        "description": "Unpowered MMC stack blinking the onboard LED of the SPIN board of the modules to test communication.",
+        "group": "Examples MMC",
+        "base": "MMC/Other/blinky_mmc_stack",
         "files": [
             "main.cpp",
+            "app.ini",
             "README.md"
         ]
     },
     {
-        "name": "arm_with_cvb_modified_dutycycleramp",
-        "title": "MMC arm with CVB modified (duty cycle ramp)",
-        "description": "Build a MMC arm integrating a Capacitor Voltage Balancing algorithm modified in Open-loop control using NLM modulation.",
-        "group": "Examples TWIST",
-        "base": "TWIST/MMC/arm_with_cvb_modified_dutycycleramp",
+        "name": "jcge_module_calibration",
+        "title": "Manual module calibration",
+        "description": "JCGE - Manual calibration of the TWIST voltage and current sensors of a MMC module.",
+        "group": "Examples MMC JCGE",
+        "base": "MMC_JCGE/module_calibration",
         "files": [
             "main.cpp",
+            "app.ini",
             "README.md"
         ]
     },
     {
-        "name": "arm_without_cvb",
-        "title": "MMC arm no CVB",
-        "description": "Build a MMC arm in Open-loop control using NLM modulation.",
-        "group": "Examples TWIST",
-        "base": "TWIST/MMC/arm_without_cvb",
+        "name": "jcge_mmc_module_lf_test",
+        "title": "MMC module JCGE – LF test (modified)",
+        "description": "JCGE - MMC module using a TWIST board tested in low-frequency behavior for easy understanding.",
+        "group": "Examples MMC JCGE",
+        "base": "MMC_JCGE/mmc_module_lf_test_modified",
         "files": [
             "main.cpp",
+            "app.ini",
             "README.md"
         ]
     },
     {
-        "name": "mmc_module_lf_test",
-        "title": "Single MMC module LF test",
-        "description": "MMC module using a Twist board tested in low-frequency behavior for easy understanding.",
-        "group": "Examples TWIST",
-        "base": "TWIST/MMC/mmc_module_lf_test",
+        "name": "jcge_mmc_module_hf_test",
+        "title": "MMC module JCGE – HF test (modified)",
+        "description": "JCGE - MMC module using a TWIST board tested in high-frequency.",
+        "group": "Examples MMC JCGE",
+        "base": "MMC_JCGE/mmc_module_hf_test_modified",
         "files": [
             "main.cpp",
+            "app.ini",
             "README.md"
         ]
     },
     {
-        "name": "mmc_module_hf_test",
-        "title": "Single MMC module HF test",
-        "description": "MMC module using a Twist board tested in high-frequency.",
-        "group": "Examples TWIST",
-        "base": "TWIST/MMC/mmc_module_hf_test",
+        "name": "jcge_arm_without_cvb",
+        "title": "MMC stack JCGE – no CVB",
+        "description": "JCGE - MMC stack in open-loop control using NLM modulation, without Capacitor Voltage Balancing.",
+        "group": "Examples MMC JCGE",
+        "base": "MMC_JCGE/arm_without_cvb",
         "files": [
             "main.cpp",
+            "app.ini",
             "README.md"
         ]
     },
     {
-        "name": "mmc_module_lf_test_modified",
-        "title": "Single MMC module LF test (modified)",
-        "description": "MMC module using a Twist board tested in low-frequency behavior for easy understanding.",
-        "group": "Examples TWIST",
-        "base": "TWIST/MMC/mmc_module_lf_test_modified",
+        "name": "jcge_arm_with_cvb",
+        "title": "MMC stack JCGE – with CVB",
+        "description": "JCGE - MMC stack in open-loop control using NLM modulation with Capacitor Voltage Balancing (0.9 duty cycle).",
+        "group": "Examples MMC JCGE",
+        "base": "MMC_JCGE/arm_with_cvb_09dutycycle",
         "files": [
             "main.cpp",
+            "app.ini",
             "README.md"
         ]
     },
     {
-        "name": "mmc_module_hf_test_modified",
-        "title": "Single MMC module HF test (modified)",
-        "description": "MMC module using a Twist board tested in high-frequency.",
-        "group": "Examples TWIST",
-        "base": "TWIST/MMC/mmc_module_hf_test_modified",
+        "name": "jcge_phase_with_cvb",
+        "title": "MMC phase JCGE",
+        "description": "JCGE - MMC phase in open-loop control using NLM modulation with Capacitor Voltage Balancing (0.9 duty cycle).",
+        "group": "Examples MMC JCGE",
+        "base": "MMC_JCGE/phase_with_cvb_09dutycycle",
         "files": [
             "main.cpp",
+            "app.ini",
             "README.md"
         ]
     }
