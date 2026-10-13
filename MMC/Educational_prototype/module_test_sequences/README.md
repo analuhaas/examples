@@ -148,18 +148,6 @@ In the low-frequency sequence, the module expected behavior is as shown in the f
 
 <img src="figures/LF_module_test_results.png" alt="LF module test results with minor hardware modifications" width="600"/>
 
-When the voltage source is turned on ($u_{dc}$ = 48 V) during the blocked state at t = 0 s, the module and capacitor voltages charge with a positive module current peak of $i_{mod}$ = 0.9 A. In the connected state at t = 0.1 s, they keep charging until $v_{mod} = v_{cap}$ = 24 V is reached.
-
-In the disconnected state at t = 0.2 s, the module voltage drops to zero ($v_{mod}$ = 0 V) and the module current increases to $i_{mod}$ = 1.6 A, since it circulates through the Q2 switch. The capacitor voltage remains at $v_{cap}$ = 24 V.
-
-When the module switches between connected and disconnected at t = 0.3 s, the module voltage $v_{mod}$ alternates between $v_{cap}$ = 24 V and 0 V, while the module current $i_{mod}$ alternates between 0 A and 1.6 A.
-
-Back to the disconnected state at t = 0.4 s, the capacitor voltage remains at $v_{cap}$ = 24 V, even when the voltage source is turned off ($u_{dc}$ = 0 V) at t = 0.45 s, because the module capacitor is no longer connected to the circuit (Q1 switch is open).
-
-In the blocked state at t = 0.7 s, the capacitor voltage remains at $v_{cap}$ = 24 V, since negative currents are blocked by the freewheeling diode.
-
-When the module goes to the connected state at t = 0.8 s, the capacitor discharges through $R_p$, producing a negative current peak of $i_{mod}$ = -0.8 A. This result confirms the expected behavior of a half-bridge module.
-
 ## Executing the HF module test
 
 17.	Verify you got correct test code using “MMC module HF test sequence”  button.
@@ -180,13 +168,3 @@ The boards starts in IDLE mode (equal to module blocked state).
 In the high-frequency sequence, the module expected behavior is as shown in the figure below if you perform the minor hardware modifications recommended for MMC usage:
 
 <img src="figures/HF_module_test_results.png" alt="HF module test results with minor hardware modifications" width="600"/>
-
-When the voltage source is turned on ($u_{dc}$ = 48 V) during the blocked state at t = 0 s, the module and capacitor voltages charge to $v_{mod} = v_{cap}$ = 24 V, with a positive module current peak of $i_{mod}$ = 0.4 A, since the positive current flows through the Q1 freewheeling diode into the capacitor. The module stays in the blocked state until t = 0.35 s, with $v_{mod} = v_{cap}$ = 24 V and no current.
-
-When the module switches between connected and disconnected in high frequency at t = 0.35 s, the module voltage $v_{mod}$ alternates between $v_{cap}$ and 0 V, while the module current $i_{mod}$ alternates between 0 A and 1.5 A.
-
-Back to the blocked state at t = 0.38 s, the positive current charges the capacitor again through the Q1 freewheeling diode, keeping it at $v_{cap}$ = 24 V. When the voltage source is turned off ($u_{dc}$ = 0 V) at t = 0.45 s, the module voltage drops to $v_{mod}$ = 0 V, as the small negative current flows through the Q2 freewheeling diode, while the capacitor voltage remains at $v_{cap}$ = 24 V, since the Q1 diode blocks the negative current.
-
-When the module switches again between connected and disconnected in high frequency at t = 0.8 s, the capacitor discharges through $R_p$ during the connected state cycles: $v_{cap}$ drops to 0 V in about 0.03 s, the module voltage $v_{mod}$ shows a peak of 27 V that decreases with the capacitor voltage, and the module current reaches a negative peak of $i_{mod}$ = -0.7 A.
-
-In the final blocked state, all voltages and currents remain at zero. This result confirms that the half-bridge module behaves correctly while switching at high frequency.
